@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+import { MOCK_IMAGES } from '@/lib/constants';
 
 interface LiveStreamProps {
   isOpen: boolean;
@@ -35,7 +37,7 @@ const LiveStream: React.FC<LiveStreamProps> = ({ isOpen, onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
-
+  const stopCamera = useCallback(() => {
   const stopCamera = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject && !fallbackMode) {
       const stream = videoRef.current.srcObject as MediaStream;
@@ -160,6 +162,10 @@ const LiveStream: React.FC<LiveStreamProps> = ({ isOpen, onClose }) => {
     }
   }, [comments]);
 
+  const handleVideoPlay = () => {};
+  
+  const handleVideoPause = () => {};
+  
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
