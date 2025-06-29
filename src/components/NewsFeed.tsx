@@ -16,6 +16,7 @@ import { MOCK_IMAGES } from '@/lib/constants';
 import { toast } from 'sonner';
 import NewsFeedTabs from './NewsFeedTabs';
 import NewsFeedFilters from './NewsFeedFilters';
+import { LazyComponent } from './ui/LazyComponent';
 
 const NewsFeed = () => {
   const { user } = useAuth();
@@ -108,6 +109,17 @@ const NewsFeed = () => {
       loadMorePosts();
     }
   }, [inView, isLoading, hasMore, loadMorePosts]);
+
+  // Simulate new posts notification
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (Math.random() > 0.7 && !hasNewPosts) {
+        setHasNewPosts(true);
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(interval);
+  }, [hasNewPosts]);
 
   const handleRefresh = () => {
     window.scrollTo({top: 0, behavior: 'smooth'});
@@ -277,8 +289,10 @@ const NewsFeed = () => {
         
         <CreatePost onCreatePost={handleCreatePost} />
         
-        {/* Reels Carousel */}
-        <ReelsCarousel />
+        {/* Reels Carousel - Lazy loaded */}
+        <LazyComponent loadingStrategy="viewport">
+          <ReelsCarousel />
+        </LazyComponent>
         
         {/* Feed Filters */}
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
@@ -319,7 +333,12 @@ const NewsFeed = () => {
         {/* New posts notification */}
         <AnimatePresence>
           {hasNewPosts && (
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="sticky top-16 z-10 flex justify-center">
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -20 }} 
+              className="sticky top-16 z-10 flex justify-center"
+            >
               <Button 
                 onClick={handleRefresh}
                 variant="default" 
@@ -345,9 +364,9 @@ const NewsFeed = () => {
                 <p className="text-gray-600 mb-4 dark:text-gray-400">There was an error loading the posts. Please try again.</p>
                 <Button 
                   onClick={handleRefresh} 
-                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-md text-sm py-1 px-3 inline-flex items-center space-x-2 dark:border-gray-700 dark:text-gray-300"
+                  className="inline-flex items-center space-x-2 dark:border-gray-700 dark:text-gray-300"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="w-4 h-4 mr-2" />
                   <span>Try Again</span>
                 </Button>
               </div>
@@ -381,7 +400,12 @@ const NewsFeed = () => {
               
               {/* Empty state for filtered results */}
               {!isLoading && posts.length === 0 && (
-                <div className="bg-white rounded-lg shadow-sm card-responsive text-center p-6 dark:bg-gray-800">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-white rounded-lg shadow-sm card-responsive text-center p-6 dark:bg-gray-800"
+                >
                   <div className="text-gray-500 dark:text-gray-400">
                     <Filter className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 dark:text-white">No posts found</h3>
@@ -394,7 +418,7 @@ const NewsFeed = () => {
                       Clear Filters
                     </Button>
                   </div>
-                </div>
+                </motion.div>
               )}
               
               {/* End of feed indicator */}

@@ -9,6 +9,7 @@ import MobileNavigation from '@/components/MobileNavigation';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { ROUTES } from '@/lib/constants';
 import { Toaster } from '@/components/ui/sonner';
+import { LazyComponent } from '@/components/ui/LazyComponent';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -30,7 +31,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   
   // Determine if we should show the right sidebar based on the current route
   useEffect(() => {
-      // Already added these classes above
     const isHomePage = location.pathname === ROUTES.HOME;
     const shouldShowRightSidebar = isHomePage && !isMobile; // Show on tablet AND desktop
     setShowRightSidebar(shouldShowRightSidebar);
@@ -49,7 +49,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           {/* Left Sidebar - Hidden on mobile */}
           {showSidebars && !isMobile && (
             <aside className="sidebar-responsive">
-              <Sidebar />
+              <LazyComponent loadingStrategy="eager">
+                <Sidebar />
+              </LazyComponent>
             </aside>
           )}
           
@@ -61,7 +63,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           {/* Right Sidebar - Only shown when showRightSidebar is true (Home page + tablet/desktop) */}
           {showSidebars && showRightSidebar && (
             <aside className="right-sidebar-responsive">
-              <RightSidebar />
+              <LazyComponent loadingStrategy="lazy">
+                <RightSidebar />
+              </LazyComponent>
             </aside>
           )}
         </div>

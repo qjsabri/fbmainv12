@@ -1,17 +1,6 @@
 // Performance optimization utilities
 import { debounce } from '@/lib/utils';
 
-// Code splitting utility with dynamic imports
-export const loadComponent = async (componentPath: string) => {
-  try {
-    const module = await import(/* @vite-ignore */ componentPath);
-    return module.default || module;
-  } catch (_error) {
-    console.error(`Failed to load component: ${componentPath}`, _error);
-    throw _error;
-  }
-};
-
 // Preload critical resources
 export const preloadResource = (href: string, as: string = 'script') => {
   const link = document.createElement('link');
@@ -36,9 +25,6 @@ export const createImageObserver = (callback: (entry: IntersectionObserverEntry)
   }
   return null;
 };
-
-// Re-export debounce from utils for convenience
-export { debounce } from '@/lib/utils';
 
 // Memory usage monitor
 export const monitorMemoryUsage = () => {
@@ -87,19 +73,13 @@ export const analyzeBundleChunks = () => {
   return [];
 };
 
-// Critical CSS inlining
-export const inlineCriticalCSS = (css: string) => {
-  const style = document.createElement('style');
-  style.textContent = css;
-  document.head.appendChild(style);
-};
-
 // Resource hints
 export const addResourceHints = () => {
   // DNS prefetch for external domains
   const dnsPrefetch = [
     '//fonts.googleapis.com',
-    '//fonts.gstatic.com'
+    '//fonts.gstatic.com',
+    '//images.pexels.com'
   ];
   
   dnsPrefetch.forEach(domain => {
@@ -112,7 +92,8 @@ export const addResourceHints = () => {
   // Preconnect to critical origins
   const preconnect = [
     'https://fonts.googleapis.com',
-    'https://fonts.gstatic.com'
+    'https://fonts.gstatic.com',
+    'https://images.pexels.com'
   ];
   
   preconnect.forEach(origin => {
@@ -124,84 +105,60 @@ export const addResourceHints = () => {
   });
 };
 
-// Service worker registration
-export const registerServiceWorker = async () => {
-  if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered:', registration);
-      return registration;
-    } catch (_error) {
-      console.error('Service Worker registration failed:', _error);
-    }
-  }
-};
-
 // Web Vitals monitoring
 export const measureWebVitals = () => {
   // Largest Contentful Paint
   if ('PerformanceObserver' in window) {
-    const observer = new PerformanceObserver((list) => {
-      const entries = list.getEntries();
-      const lastEntry = entries[entries.length - 1];
-      console.log('LCP:', lastEntry.startTime);
-    });
-    observer.observe({ entryTypes: ['largest-contentful-paint'] });
+    try {
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        const lastEntry = entries[entries.length - 1];
+        console.log('LCP:', lastEntry.startTime);
+      });
+      observer.observe({ entryTypes: ['largest-contentful-paint'] });
+    } catch (e) {
+      console.error('LCP observation error:', e);
+    }
   }
   
   // First Input Delay
   if ('PerformanceObserver' in window) {
-    const observer = new PerformanceObserver((list) => {
-      const entries = list.getEntries();
-      entries.forEach((entry) => {
-        console.log('FID:', (entry as PerformanceEntry & { processingStart: number }).processingStart - entry.startTime);
+    try {
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        entries.forEach((entry) => {
+          const fid = (entry as PerformanceEntry & { processingStart: number }).processingStart - entry.startTime;
+          console.log('FID:', fid);
+        });
       });
-    });
-    observer.observe({ entryTypes: ['first-input'] });
+      observer.observe({ entryTypes: ['first-input'] });
+    } catch (e) {
+      console.error('FID observation error:', e);
+    }
   }
-};
-
-// Image optimization
-export const optimizeImage = (src: string, width?: number, height?: number, quality: number = 80) => {
-  // This would typically integrate with an image optimization service
-  // For now, we'll return the original src with potential query parameters
-  const url = new URL(src, window.location.origin);
-  
-  if (width) url.searchParams.set('w', width.toString());
-  if (height) url.searchParams.set('h', height.toString());
-  url.searchParams.set('q', quality.toString());
-  
-  return url.toString();
 };
 
 // Critical resource loading
 export const loadCriticalResources = () => {
-  // Preload critical fonts
-  preloadResource('/fonts/inter-var.woff2', 'font');
-  
   // Add resource hints
   addResourceHints();
   
-  // Register service worker
-  registerServiceWorker();
-  
   // Start measuring web vitals
   measureWebVitals();
+  
+  // Preload critical fonts
+  preloadResource('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap', 'style');
 };
 
 // Export all utilities
 export default {
-  loadComponent,
   preloadResource,
   createImageObserver,
   debounce,
   monitorMemoryUsage,
   measurePerformance,
   analyzeBundleChunks,
-  inlineCriticalCSS,
   addResourceHints,
-  registerServiceWorker,
   measureWebVitals,
-  optimizeImage,
   loadCriticalResources
 };

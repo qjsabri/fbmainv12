@@ -48,8 +48,20 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         ? 'dark'
         : 'light';
       root.classList.add(systemTheme);
+      
+      // Update meta theme-color
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', systemTheme === 'dark' ? '#1f2937' : '#ffffff');
+      }
     } else {
       root.classList.add(theme);
+      
+      // Update meta theme-color
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', theme === 'dark' ? '#1f2937' : '#ffffff');
+      }
     }
   }, [theme]);
 
@@ -64,6 +76,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         const root = window.document.documentElement;
         root.classList.remove('light', 'dark');
         root.classList.add(mediaQuery.matches ? 'dark' : 'light');
+        
+        // Update meta theme-color
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+          metaThemeColor.setAttribute('content', mediaQuery.matches ? '#1f2937' : '#ffffff');
+        }
       }
     };
     

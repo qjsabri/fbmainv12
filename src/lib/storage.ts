@@ -24,7 +24,7 @@ export const storage = {
       }
       
       return data.value;
-    } catch (_error) {
+    } catch (error) {
       console.error(`Error getting item "${key}" from localStorage:`, error);
       return defaultValue || null;
     }
@@ -43,7 +43,7 @@ export const storage = {
       }
       
       localStorage.setItem(key, JSON.stringify(data));
-    } catch (_error) {
+    } catch (error) {
       console.error(`Error setting item "${key}" in localStorage:`, error);
       
       // If storage is full, try to clear some space
@@ -79,7 +79,7 @@ export const storage = {
     if (typeof window === 'undefined') return;
     try {
       localStorage.removeItem(key);
-    } catch (_error) {
+    } catch (error) {
       console.error(`Error removing item "${key}" from localStorage:`, error);
     }
   },
@@ -88,7 +88,7 @@ export const storage = {
     if (typeof window === 'undefined') return;
     try {
       localStorage.clear();
-    } catch (_error) {
+    } catch (error) {
       console.error('Error clearing localStorage:', error);
     }
   },
@@ -98,7 +98,7 @@ export const storage = {
     if (typeof window === 'undefined') return;
     try {
       sessionStorage.setItem(key, JSON.stringify({ value }));
-    } catch (_error) {
+    } catch (error) {
       console.error(`Error setting item "${key}" in sessionStorage:`, error);
     }
   },
@@ -114,6 +114,41 @@ export const storage = {
       return data.value;
     } catch {
       return defaultValue || null;
+    }
+  },
+  
+  // Check if storage is available
+  isAvailable: (): boolean => {
+    if (typeof window === 'undefined') return false;
+    
+    try {
+      const testKey = '__storage_test__';
+      localStorage.setItem(testKey, testKey);
+      localStorage.removeItem(testKey);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  
+  // Get storage usage info
+  getUsage: (): { used: number, total: number, percentage: number } | null => {
+    if (typeof window === 'undefined' || !navigator.storage || !navigator.storage.estimate) {
+      return null;
+    }
+    
+    try {
+      return navigator.storage.estimate().then(estimate => {
+        if (!estimate.usage || !estimate.quota) return null;
+        
+        return {
+          used: Math.round(estimate.usage / 1024 / 1024), // MB
+          total: Math.round(estimate.quota / 1024 / 1024), // MB
+          percentage: Math.round((estimate.usage / estimate.quota) * 100)
+        };
+      });
+    } catch {
+      return null;
     }
   }
 };
@@ -144,7 +179,7 @@ const cleanupExpiredItems = () => {
 export const safeJsonParse = <T>(json: string, fallback: T): T => {
   try {
     return JSON.parse(json) as T;
-  } catch (_error) {
+  } catch (error) {
     console.warn('Failed to parse JSON', error);
     return fallback;
   }

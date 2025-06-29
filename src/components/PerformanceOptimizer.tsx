@@ -1,17 +1,9 @@
-// Performance monitoring and optimization component
 import React, { useRef, useState, useEffect } from 'react';
 import { debounce } from '@/lib/utils';
+import { loadCriticalResources } from '@/utils/performance';
 
 interface PerformanceOptimizerProps {
   children: React.ReactNode;
-}
-
-interface PerformanceWithMemory extends Performance {
-  memory?: {
-    usedJSHeapSize: number;
-    totalJSHeapSize: number;
-    jsHeapSizeLimit: number;
-  };
 }
 
 const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({ children }) => {
@@ -35,6 +27,9 @@ const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({ children })
         }
       }
       
+      // Load critical resources
+      loadCriticalResources();
+      
       // Wait for all resources to load
       window.addEventListener('load', () => {
         // Measure initial render time
@@ -52,10 +47,6 @@ const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({ children })
                 ...prev,
                 renderTime
               }));
-              
-              if (process.env.NODE_ENV === 'development') {
-                // Initial render time tracked
-              }
             }
           } catch (e) {
             console.warn('Could not measure performance:', e);
@@ -80,8 +71,15 @@ const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({ children })
         const fps = Math.round((frameCount * 1000) / elapsed);
         
         // Get memory info if available (Chrome only)
-        const memory = (performance as PerformanceWithMemory).memory;
-        const memoryUsage = memory ? Math.round(memory.usedJSHeapSize / (1024 * 1024)) : null;
+        let memoryUsage = null;
+        try {
+          const memory = (performance as any).memory;
+          if (memory) {
+            memoryUsage = Math.round(memory.usedJSHeapSize / (1024 * 1024));
+          }
+        } catch (e) {
+          // Memory API not available
+        }
         
         setPerformanceMetrics(prev => ({
           ...prev,
@@ -100,22 +98,23 @@ const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({ children })
     frameId = requestAnimationFrame(measureFPS);
     
     // Track network performance
-    const observer = new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) {
-        // Only process resource timing entries
-        if (entry.entryType === 'resource') {
-          setPerformanceMetrics(prev => ({
-            ...prev,
-            networkLatency: Math.max(prev.networkLatency, entry.duration),
-            resourcesLoaded: prev.resourcesLoaded + 1,
-            resourcesTotal: document.querySelectorAll('img, script, link, iframe').length
-          }));
-        }
-      }
-    });
-    
-    // Start observing resource timing entries
+    let observer: PerformanceObserver | null = null;
     try {
+      observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          // Only process resource timing entries
+          if (entry.entryType === 'resource') {
+            setPerformanceMetrics(prev => ({
+              ...prev,
+              networkLatency: Math.max(prev.networkLatency, entry.duration),
+              resourcesLoaded: prev.resourcesLoaded + 1,
+              resourcesTotal: document.querySelectorAll('img, script, link, iframe').length
+            }));
+          }
+        }
+      });
+      
+      // Start observing resource timing entries
       observer.observe({ entryTypes: ['resource'] });
     } catch (e) {
       console.warn('PerformanceObserver not supported', e);
@@ -123,7 +122,6 @@ const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({ children })
     
     // Optimize image loading
     const lazyLoadImages = debounce(() => {
-      const lazyImages = document.querySelectorAll('img[loading="lazy"]');
       if ('IntersectionObserver' in window) {
         const imageObserver = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
@@ -138,15 +136,8 @@ const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({ children })
           });
         });
         
+        const lazyImages = document.querySelectorAll('img[loading="lazy"]');
         lazyImages.forEach(img => imageObserver.observe(img));
-      } else {
-        // Fallback for browsers without IntersectionObserver
-        lazyImages.forEach(img => {
-          const imgEl = img as HTMLImageElement;
-          if (imgEl.dataset.src) {
-            imgEl.src = imgEl.dataset.src;
-          }
-        });
       }
     }, 200);
     
@@ -170,20 +161,9 @@ const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({ children })
       cancelAnimationFrame(frameId);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
-      observer.disconnect();
+      if (observer) observer.disconnect();
     };
   }, []);
-  
-  // Log performance metrics in development
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const interval = setInterval(() => {
-        console.debug('[Performance]', performanceMetrics);
-      }, 10000); // Log every 10 seconds
-      
-      return () => clearInterval(interval);
-    }
-  }, [performanceMetrics]);
 
   return <>{children}</>;
 };

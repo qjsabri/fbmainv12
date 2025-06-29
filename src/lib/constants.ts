@@ -80,7 +80,12 @@ export const STORAGE_KEYS = {
   SAVED_ITEMS: 'savedItems',
   SAVED_VIEW_MODE: 'savedViewMode',
   USER_STORIES: 'userStories',
-  POLL_VOTES: 'pollVotes'
+  POLL_VOTES: 'pollVotes',
+  SEARCH_HISTORY: 'searchHistory',
+  USER_PREFERENCES: 'userPreferences',
+  NOTIFICATIONS_SETTINGS: 'notificationsSettings',
+  CHAT_HISTORY: 'chatHistory',
+  LAST_ACTIVE: 'lastActive'
 } as const;
 
 export const MOCK_IMAGES = {
@@ -97,7 +102,9 @@ export const MOCK_IMAGES = {
     'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?w=800&h=600&fit=crop',
     'https://images.pexels.com/photos/1640770/pexels-photo-1640770.jpeg?w=800&h=600&fit=crop',
     'https://images.pexels.com/photos/1640771/pexels-photo-1640771.jpeg?w=800&h=600&fit=crop',
-    'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?w=800&h=600&fit=crop'
+    'https://images.pexels.com/photos/1640772/pexels-photo-1640772.jpeg?w=800&h=600&fit=crop',
+    'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?w=800&h=600&fit=crop',
+    'https://images.pexels.com/photos/1761279/pexels-photo-1761279.jpeg?w=800&h=600&fit=crop'
   ],
   COVERS: [
     'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?w=1200&h=400&fit=crop',
@@ -107,7 +114,14 @@ export const MOCK_IMAGES = {
   EVENTS: [
     'https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg?w=800&h=600&fit=crop',
     'https://images.pexels.com/photos/2608517/pexels-photo-2608517.jpeg?w=800&h=600&fit=crop'
-  ]
+  ],
+  PROFILE_1: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?w=800&h=800&fit=crop',
+  PROFILE_2: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?w=800&h=800&fit=crop',
+  PROFILE_3: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?w=800&h=800&fit=crop',
+  PROFILE_4: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?w=800&h=800&fit=crop',
+  COMPANY_1: 'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?w=400&h=400&fit=crop',
+  COMPANY_2: 'https://images.pexels.com/photos/1761279/pexels-photo-1761279.jpeg?w=400&h=400&fit=crop',
+  COMPANY_3: 'https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg?w=400&h=400&fit=crop'
 } as const;
 
 export const THEMES = {

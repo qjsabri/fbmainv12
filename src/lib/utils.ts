@@ -84,71 +84,6 @@ export const handleError = (error: unknown, context?: string): void => {
   console.error(`Error in ${context || 'application'}:`, message);
 };
 
-// Performance monitoring
-export const performanceMonitor = {
-  marks: new Map<string, number>(),
-  
-  mark: (name: string): void => {
-    if (typeof performance !== 'undefined' && performance && performance.mark) {
-      performance.mark(name);
-    }
-    
-    performanceMonitor.marks.set(name, performance.now());
-  },
-  
-  measure: (name: string, startMark: string, endMark?: string): number => {
-    if (typeof performance !== 'undefined' && performance && performance.measure && performance.getEntriesByName) {
-      try {
-        performance.measure(name, startMark, endMark);
-        const entries = performance.getEntriesByName(name);
-        return entries.length > 0 ? entries[0].duration : 0;
-      } catch (e) {
-        console.warn('Performance measurement error:', e);
-      }
-    }
-    
-    // Fallback to our own implementation
-    const start = performanceMonitor.marks.get(startMark) || 0;
-    const end = endMark ? (performanceMonitor.marks.get(endMark) || performance.now()) : performance.now();
-    return end - start;
-  },
-  
-  clearMarks: (): void => {
-    if (typeof performance !== 'undefined' && performance && performance.clearMarks) {
-      performance.clearMarks();
-    }
-    
-    performanceMonitor.marks.clear();
-  }
-};
-
-// Image optimization
-export const optimizeImageUrl = (url: string, width?: number, height?: number): string => {
-  if (!url || typeof url !== 'string') return url;
-  
-  // Only optimize Pexels images
-  if (!url.includes('pexels.com')) return url;
-  
-  const params = new URLSearchParams();
-  if (width) params.set('w', width.toString());
-  if (height) params.set('h', height.toString());
-  params.set('fit', 'crop');
-  params.set('auto', 'format');
-  params.set('q', '80'); // Add quality parameter for better optimization
-  
-  // Check if URL already has parameters
-  if (url.includes('?')) {
-    return `${url}&${params.toString()}`;
-  }
-  
-  return `${url}?${params.toString()}`;
-};
-
-// Generate random ID
-export const generateId = (prefix = ''): string => {
-  return `${prefix}${Math.random().toString(36).substring(2, 9)}_${Date.now().toString(36)}`;
-};
-
 // Memory management
 export const cleanupResources = (refs: React.MutableRefObject<unknown>) => {
   // Clean up any resources that need manual freeing
@@ -193,4 +128,31 @@ export const safeJsonParse = <T>(json: string, fallback: T): T => {
     console.warn('Failed to parse JSON', e);
     return fallback;
   }
+};
+
+// Image optimization
+export const optimizeImageUrl = (url: string, width?: number, height?: number, quality: number = 80): string => {
+  if (!url || typeof url !== 'string') return url;
+  
+  // Only optimize Pexels images
+  if (!url.includes('pexels.com')) return url;
+  
+  const params = new URLSearchParams();
+  if (width) params.set('w', width.toString());
+  if (height) params.set('h', height.toString());
+  params.set('fit', 'crop');
+  params.set('auto', 'format');
+  params.set('q', quality.toString());
+  
+  // Check if URL already has parameters
+  if (url.includes('?')) {
+    return `${url}&${params.toString()}`;
+  }
+  
+  return `${url}?${params.toString()}`;
+};
+
+// Generate random ID
+export const generateId = (prefix = ''): string => {
+  return `${prefix}${Math.random().toString(36).substring(2, 9)}_${Date.now().toString(36)}`;
 };

@@ -13,7 +13,7 @@ export function useIsMobile() {
       const width = window.innerWidth;
       const currentValue = width < APP_CONFIG.MOBILE_BREAKPOINT;
       if (currentValue !== isMobile) {
-      setIsMobile(window.innerWidth < APP_CONFIG.MOBILE_BREAKPOINT);
+        setIsMobile(currentValue);
       }
     };
     

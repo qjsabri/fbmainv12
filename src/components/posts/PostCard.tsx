@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import ReactionPicker from '../ReactionPicker';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/constants';
+import { OptimizedImage } from '@/components/ui/image';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Post {
   id: string;
@@ -50,8 +52,7 @@ interface PostCardProps {
   post: Post;
 }
 
-// Use React.memo to prevent unnecessary re-renders
-const PostCard = React.memo<PostCardProps>(({ post }) => {
+const PostCard = memo<PostCardProps>(({ post }) => {
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isLiked, setIsLiked] = useState(post.user_has_liked || false);
@@ -78,14 +79,14 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
     }
   }, [post.id]);
 
-  const handleLike = () => {
+  const handleLike = useCallback(() => {
     setIsLiked(!isLiked);
     setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
     
     toast.success(isLiked ? 'Post unliked' : 'Post liked');
-  };
+  }, [isLiked]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     const newIsSaved = !isSaved;
     setIsSaved(newIsSaved);
     
@@ -102,9 +103,9 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
     storage.set(STORAGE_KEYS.SAVED_POSTS, savedPosts);
     
     toast.success(isSaved ? 'Post removed from saved' : 'Post saved');
-  };
+  }, [isSaved, post.id]);
 
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     if (navigator.share) {
       navigator.share({
         title: `Post by ${post.profiles?.full_name}`,
@@ -112,46 +113,41 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
         url: window.location.href,
       }).catch(err => {
         console.error('Error sharing:', err);
-        toast.error('Error sharing post');
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href).then(() => {
+        navigator.clipboard.writeText(window.location.href);
         toast.success('Post link copied to clipboard');
       });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Post link copied to clipboard');
     }
-  };
+  }, [post.profiles?.full_name, post.content]);
 
-  const handleSubmitComment = async () => {
+  const handleSubmitComment = useCallback(() => {
     if (!newComment.trim()) return;
     
-    try {
-      const newCommentObj: Comment = {
-        id: Date.now().toString(),
-        content: newComment,
-        created_at: new Date().toISOString(),
-        profiles: {
-          full_name: 'You',
-          avatar_url: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face'
-        }
-      };
-      
-      setComments([...comments, newCommentObj]);
-      setNewComment('');
-      toast.success('Comment added');
-    } catch (error) {
-      toast.error('Failed to add comment');
-      console.error('Error adding comment:', error);
-    }
-  };
+    const newCommentObj: Comment = {
+      id: Date.now().toString(),
+      content: newComment,
+      created_at: new Date().toISOString(),
+      profiles: {
+        full_name: 'You',
+        avatar_url: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face'
+      }
+    };
+    
+    setComments(prev => [...prev, newCommentObj]);
+    setNewComment('');
+    toast.success('Comment added');
+  }, [newComment]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmitComment();
     }
-  };
+  }, [handleSubmitComment]);
 
-  const handleVote = (optionIndex: number) => {
+  const handleVote = useCallback((optionIndex: number) => {
     if (userPollVote !== null) {
       toast.info('You have already voted');
       return;
@@ -169,20 +165,20 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
     storage.set(STORAGE_KEYS.POLL_VOTES, pollVotes);
     
     toast.success('Vote recorded');
-  };
+  }, [userPollVote, post.id]);
 
-  const getTotalVotes = (): number => {
+  const getTotalVotes = useCallback((): number => {
     return Object.values(pollVotes).reduce((sum, count) => sum + count, 0);
-  };
+  }, [pollVotes]);
 
-  const getVotePercentage = (optionIndex: number): number => {
+  const getVotePercentage = useCallback((optionIndex: number): number => {
     const total = getTotalVotes();
     if (total === 0) return 0;
     return Math.round((pollVotes[optionIndex] || 0) / total * 100);
-  };
+  }, [getTotalVotes, pollVotes]);
 
   // Handle reactions
-  const handleReaction = (reaction: string) => {
+  const handleReaction = useCallback((reaction: string) => {
     setShowReactionPicker(false);
     
     if (currentReaction === reaction) {
@@ -203,7 +199,7 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
       
       toast.success(`Reacted with ${reaction}`);
     }
-  };
+  }, [currentReaction]);
 
   // Determine if the post content contains a GIF
   const hasGif = post.content?.includes('[GIF:');
@@ -219,7 +215,7 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
   }
 
   return (
-    <Card className="card-responsive shadow-sm hover:shadow-md transition-shadow bg-white border-0 shadow-gray-100 mb-4 dark:bg-gray-800 dark:shadow-gray-900">
+    <Card className="card-responsive shadow-sm hover:shadow-md transition-shadow bg-white border-0 shadow-gray-100 mb-4 dark:bg-gray-800 dark:shadow-gray-900 overflow-hidden">
       <CardContent className="spacing-responsive">
         {/* Post Header */}
         <div className="flex items-center justify-between">
@@ -274,6 +270,7 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
               src={gifUrl} 
               alt="GIF" 
               className="rounded-lg max-h-80 mx-auto"
+              loading="lazy"
             />
           </div>
         )}
@@ -330,11 +327,12 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
         {/* Post Media */}
         {post.image_url && (
           <div className="mt-3 w-full">
-            <img
+            <OptimizedImage
               src={post.image_url}
               alt="Post content"
               className="w-full h-auto max-h-96 object-cover rounded-md cursor-pointer hover:opacity-95 transition-opacity"
               loading="lazy"
+              loadingMode="blur"
             />
           </div>
         )}
@@ -471,10 +469,6 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
                         <button className="font-semibold hover:underline">Reply</button>
                       </div>
                     </div>
-                    
-                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 text-gray-400">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
                   </div>
                 ))
               ) : (
@@ -484,7 +478,7 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
               )}
             </div>
             
-            {/* Add Comment */}
+            {/* Add Comment - Optimized for mobile */}
             <div className="mt-3 pt-3 border-t border-gray-200 px-3 pb-3 flex space-x-2 dark:border-gray-700">
               <Avatar className="w-8 h-8 flex-shrink-0">
                 <AvatarImage src="https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face" />
@@ -496,13 +490,13 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="rounded-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-responsive-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  className="rounded-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm h-9 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                 />
                 <Button 
                   onClick={handleSubmitComment} 
                   size="sm"
                   disabled={!newComment.trim()}
-                  className="rounded-full px-4 button-responsive"
+                  className="rounded-full px-3 h-9 min-w-[60px]"
                 >
                   Post
                 </Button>
@@ -515,5 +509,6 @@ const PostCard = React.memo<PostCardProps>(({ post }) => {
   );
 });
 
-// Use React.memo to prevent unnecessary re-renders
-export default memo(PostCard);
+PostCard.displayName = 'PostCard';
+
+export default PostCard;
