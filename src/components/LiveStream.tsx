@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { MOCK_IMAGES } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { useCallback } from 'react';
 interface LiveStreamProps {
   isOpen: boolean;
   onClose: () => void;

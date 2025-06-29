@@ -857,7 +857,7 @@ const ChatWidget = memo(() => {
       </Dialog>
     </>
   );
-};
+});
 
 // Search icon component
 const Search = ({ className }: { className?: string }) => (
