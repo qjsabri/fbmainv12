@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { formatTimeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
 import { storage } from '@/lib/storage';
-import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/constants';
 import { OptimizedImage } from '@/components/ui/image';
 import { motion, AnimatePresence } from 'framer-motion';
