@@ -9,7 +9,7 @@ import { ROUTES } from "@/lib/constants";
 import { Toaster } from "@/components/ui/sonner";
 import ThemeProvider from "@/components/ThemeProvider";
 import { loadCriticalResources } from "@/utils/performance";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 
 // Custom suspense fallback
 const SuspenseFallback = () => (

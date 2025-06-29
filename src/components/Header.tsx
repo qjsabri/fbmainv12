@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LiveStreamButton from './LiveStreamButton';
 import { useIsMobile } from '@/hooks/use-device';
-import { ROUTES, getSafeImage } from '@/lib/constants';
+import { ROUTES, MOCK_IMAGES, getSafeImage } from '@/lib/constants';
 import ThemeToggle from './ThemeToggle';
 import ReelsButton from './ReelsButton';
 import NotificationBell from './NotificationBell';
@@ -152,7 +152,6 @@ const Header = memo(() => {
                 className="w-8 h-8 cursor-pointer hover:opacity-80 transition-opacity ml-2" 
                 onClick={handleProfileClick}
               >
-                <AvatarImage src={getSafeImage('AVATARS', 7)} />
                 <AvatarImage src={getSafeImage('AVATARS', 7)} />
                 <AvatarFallback className="text-sm">JD</AvatarFallback>
               </Avatar>
