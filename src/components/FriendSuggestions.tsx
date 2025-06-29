@@ -61,6 +61,11 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     return null;
   }
 
+  // Early return if post is undefined or null
+  if (!post) {
+    return null;
+  }
+
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isLiked, setIsLiked] = useState(post.user_has_liked || false);
