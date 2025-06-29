@@ -153,7 +153,8 @@ const Header = memo(() => {
                 onClick={handleProfileClick}
               >
                 <AvatarImage src={getSafeImage('AVATARS', 7)} />
-                <AvatarImage src="https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face" />
+                <AvatarImage src={getSafeImage('AVATARS', 7)} />
+                <AvatarFallback className="text-sm">JD</AvatarFallback>
               </Avatar>
             </div>
           </div>
