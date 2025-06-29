@@ -10,17 +10,20 @@ export function useIsMobile() {
     if (typeof window === 'undefined') return;
     
     // Optimize with memoized value comparison
-    const checkMobile = debounce(() => {
+    const checkMobile = () => {
       const width = window.innerWidth;
       const currentValue = width < APP_CONFIG.MOBILE_BREAKPOINT;
       if (currentValue !== isMobile) {
         setIsMobile(currentValue);
       }
-    }, 100); // Reduced debounce time for better responsiveness
+    };
     
-    window.addEventListener("resize", checkMobile);
+    // Debounce the resize check for performance
+    const debouncedCheck = debounce(checkMobile, 100);
     
-    return () => window.removeEventListener("resize", checkMobile);
+    window.addEventListener("resize", debouncedCheck);
+    
+    return () => window.removeEventListener("resize", debouncedCheck);
   }, [isMobile]);
 
   return isMobile;

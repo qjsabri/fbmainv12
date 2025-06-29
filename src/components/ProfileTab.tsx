@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, MapPin, Briefcase, GraduationCap, Heart, Edit3, MessageCircle, UserPlus, MoreHorizontal } from 'lucide-react';
+import { Camera, MapPin, Briefcase, GraduationCap, Heart, Edit3, MessageCircle, UserPlus, MoreHorizontal, X, UserMinus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
