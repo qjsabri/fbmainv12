@@ -3,7 +3,7 @@ import { Bookmark, ExternalLink, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MOCK_IMAGES, STORAGE_KEYS } from '@/lib/constants';
+import { MOCK_IMAGES, STORAGE_KEYS, getSafeImage } from '@/lib/constants';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { storage } from '@/lib/storage';
