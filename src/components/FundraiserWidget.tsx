@@ -51,10 +51,10 @@ const FundraiserWidget = () => {
     },
     {
       id: '2',
-      title: 'Children's Hospital Medical Equipment',
-      description: 'Help us purchase vital medical equipment for our children's hospital to improve care for our youngest patients.',
+      title: 'Children\'s Hospital Medical Equipment',
+      description: 'Help us purchase vital medical equipment for our children\'s hospital to improve care for our youngest patients.',
       organizer: {
-        name: 'City Children's Hospital',
+        name: 'City Children\'s Hospital',
         avatar: MOCK_IMAGES.AVATARS[1],
         isVerified: true
       },
