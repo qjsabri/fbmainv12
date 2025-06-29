@@ -59,16 +59,16 @@ interface PostCardProps {
 const PostCard = memo<PostCardProps>(({ post }) => {
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
-  const [isLiked, setIsLiked] = useState(post && post.user_has_liked || false);
+  const [isLiked, setIsLiked] = useState(post?.user_has_liked || false);
   const [isSaved, setIsSaved] = useState(false);
-  const [likesCount, setLikesCount] = useState(post && post.likes_count || 0);
+  const [likesCount, setLikesCount] = useState(post?.likes_count || 0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [currentReaction, setCurrentReaction] = useState<string | null>(null);
   const [userPollVote, setUserPollVote] = useState<number | null>(null);
   const [pollVotes, setPollVotes] = useState<Record<string, number>>(
-    post && post.pollOptions ? post.pollOptions.slice(1).reduce((acc, _, index) => {
-      acc[index] = post.pollVotes && post.pollVotes[index] || Math.floor(Math.random() * 50);
+    post?.pollOptions?.slice(1).reduce((acc, _, index) => {
+      acc[index] = post?.pollVotes?.[index] || Math.floor(Math.random() * 50);
       return acc;
     }, {} as Record<string, number>) : {}
   );
