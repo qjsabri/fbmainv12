@@ -17,7 +17,6 @@ import { toast } from 'sonner';
 import NewsFeedTabs from './NewsFeedTabs';
 import NewsFeedFilters from './NewsFeedFilters';
 import LazyComponent from './ui/LazyComponent';
-import LazyComponent from './ui/LazyComponent';
 
 const NewsFeed = () => {
   const { user } = useAuth();
