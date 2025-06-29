@@ -9,7 +9,7 @@ import MobileNavigation from '@/components/MobileNavigation';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { ROUTES } from '@/lib/constants';
 import { Toaster } from '@/components/ui/sonner';
-import { LazyComponent } from '@/components/ui/LazyComponent';
+import LazyComponent from '@/components/ui/LazyComponent';
 
 interface AppLayoutProps {
   children: React.ReactNode;
