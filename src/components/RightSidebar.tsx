@@ -57,6 +57,8 @@ interface PostCardProps {
 }
 
 const PostCard = memo<PostCardProps>(({ post }) => {
+  if (!post) return null;
+
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isLiked, setIsLiked] = useState(post.user_has_liked || false);
