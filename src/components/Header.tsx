@@ -153,7 +153,7 @@ const Header = memo(() => {
                 onClick={handleProfileClick}
               >
                 <AvatarImage src={getSafeImage('AVATARS', 7)} />
-              <AvatarImage src="https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face" />
+                <AvatarImage src="https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face" />
               </Avatar>
             </div>
           </div>
@@ -216,7 +216,7 @@ const Header = memo(() => {
       <ChatWidget />
     </>
   );
-};
+});
 
 // Gamepad icon component
 const Gamepad = ({ className }: { className?: string }) => (
@@ -239,3 +239,5 @@ const Gamepad = ({ className }: { className?: string }) => (
     <rect x="2" y="6" width="20" height="12" rx="2" />
   </svg>
 );
+
+export default Header;
