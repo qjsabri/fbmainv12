@@ -71,7 +71,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   const [currentReaction, setCurrentReaction] = useState<string | null>(null);
   const [userPollVote, setUserPollVote] = useState<number | null>(null);
   const [pollVotes, setPollVotes] = useState<Record<string, number>>(
-    post?.pollOptions?.slice(1).reduce((acc, _, index) => {
+    post?.pollOptions?.slice(1)?.reduce((acc, _, index) => {
       acc[index] = post?.pollVotes?.[index] || Math.floor(Math.random() * 50);
       return acc;
     }, {} as Record<string, number>) || {}
