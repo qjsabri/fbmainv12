@@ -24,9 +24,7 @@ export const LazyComponent: React.FC<LazyComponentProps> = ({
   threshold = 0.1,
   rootMargin = '100px',
   loadDelay = 0,
-  loadDelay = 0,
   triggerOnce = true,
-  loadingStrategy = 'viewport',
   loadingStrategy = 'viewport',
   className,
   id
@@ -42,8 +40,6 @@ export const LazyComponent: React.FC<LazyComponentProps> = ({
     // Handle different loading strategies
     switch (loadingStrategy) {
       case 'eager':
-        setShouldRender(true);
-        break;
         setShouldRender(true);
         break;
       case 'lazy':
