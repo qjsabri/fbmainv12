@@ -171,12 +171,12 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     
     // Save vote to storage
     const pollVotes = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {});
-    pollVotes[post?.id || ''] = optionIndex;
+    if (post) {
+      pollVotes[post.id] = optionIndex;
+    }
     storage.set(STORAGE_KEYS.POLL_VOTES, pollVotes);
     
-    toast.success('Vote recorded');
-  }, [userPollVote, post.id]);
-  }, [userPollVote, post?.id]);
+  }, [userPollVote, post]);
 
   const getTotalVotes = useCallback((): number => {
     return Object.values(pollVotes).reduce((sum, count) => sum + count, 0);
