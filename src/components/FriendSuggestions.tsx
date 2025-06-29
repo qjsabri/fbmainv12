@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // Memoize formatTimeAgo to avoid unnecessary recalculations
 import { memoize } from '@/lib/utils';
-const memoizedFormatTimeAgo = memoize(formatTimeAgo || (() => ''));
+const memoizedFormatTimeAgo = memoize(formatTimeAgo);
 
 interface Post {
   id: string;
@@ -61,43 +61,39 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     return null;
   }
 
-  // Early return if post is undefined or null
-  if (!post) {
-    return null;
-  }
-
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
-  const [isLiked, setIsLiked] = useState(post.user_has_liked || false);
+  const [isLiked, setIsLiked] = useState(post?.user_has_liked || false);
   const [isSaved, setIsSaved] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [likesCount, setLikesCount] = useState(post?.likes_count || 0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [currentReaction, setCurrentReaction] = useState<string | null>(null);
   const [userPollVote, setUserPollVote] = useState<number | null>(null);
   const [pollVotes, setPollVotes] = useState<Record<string, number>>(
-    () => {
-      if (post.pollOptions && Array.isArray(post.pollOptions) && post.pollOptions.length > 1) {
-        return post.pollOptions.slice(1).reduce((acc, _, index) => {
-          acc[index] = (post.pollVotes && post.pollVotes[index]) || Math.floor(Math.random() * 50);
+    (() => {
+      if (post?.pollOptions && Array.isArray(post.pollOptions) && post.pollOptions.length > 1) {
+        return post.pollOptions.slice(1).reduce((acc: Record<string, number>, _, index) => {
+          acc[index] = (post.pollVotes && typeof post.pollVotes === 'object' && post.pollVotes[index]) 
+            || Math.floor(Math.random() * 50);
           return acc;
-        }, {} as Record<string, number>);
+        }, {});
       }
       return {};
-    }
+    })()
   );
   
   const likeButtonRef = useRef<HTMLButtonElement>(null);
 
   // Check if post is saved
   React.useEffect(() => {
-    if (post.id) {
-      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
+    if (post?.id) {
+      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []) || [];
       if (savedPosts.includes(post.id)) {
         setIsSaved(true);
       }
     }
-  }, [post]);
+  }, [post?.id]);
 
   const handleLike = useCallback(() => {
     setIsLiked(!isLiked);
@@ -111,19 +107,21 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     setIsSaved(newIsSaved);
     
     // Update saved posts in storage
-    const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
-    if (newIsSaved) {
-      savedPosts.push(post.id);
-    } else {
-      const index = savedPosts.indexOf(post.id);
-      if (index !== -1) {
-        savedPosts.splice(index, 1);
+    if (post?.id) {
+      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []) || [];
+      if (newIsSaved) {
+        savedPosts.push(post.id);
+      } else {
+        const index = savedPosts.indexOf(post.id);
+        if (index !== -1) {
+          savedPosts.splice(index, 1);
+        }
       }
+      storage.set(STORAGE_KEYS.SAVED_POSTS, savedPosts);
     }
-    storage.set(STORAGE_KEYS.SAVED_POSTS, savedPosts);
     
     toast.success(isSaved ? 'Post removed from saved' : 'Post saved');
-  }, [isSaved, post.id]);
+  }, [isSaved, post?.id]);
 
   const handleShare = useCallback(() => {
     if (navigator.share) {
@@ -176,15 +174,19 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     setUserPollVote(optionIndex);
     setPollVotes(prev => ({
       ...prev,
-      [optionIndex]: (prev[optionIndex] || 0) + 1
+      [optionIndex]: ((prev && prev[optionIndex]) || 0) + 1
     }));
     
     // Save vote to storage
-    const pollVotes = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {});
-    pollVotes[post.id] = optionIndex;
-    storage.set(STORAGE_KEYS.POLL_VOTES, pollVotes);
+    if (post?.id) {
+      const pollVoteStorage = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {}) || {};
+      pollVoteStorage[post.id] = optionIndex;
+      storage.set(STORAGE_KEYS.POLL_VOTES, pollVoteStorage);
+    }
     
-  }, [userPollVote, post]);
+    
+    toast.success('Vote recorded');
+  }, [userPollVote, post?.id]);
 
   const getTotalVotes = useCallback((): number => {
     return Object.values(pollVotes).reduce((sum, count) => sum + count, 0);
@@ -240,18 +242,18 @@ const PostCard = memo<PostCardProps>(({ post }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Avatar className="avatar-responsive">
-              <AvatarImage src={post.profiles?.avatar_url} />
+              <AvatarImage src={post?.profiles?.avatar_url} />
               <AvatarFallback className="bg-blue-500 text-white">
-                {post.profiles?.full_name?.charAt(0) || 'U'}
+                {post?.profiles?.full_name?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
               <h3 className="font-semibold text-gray-900 hover:underline cursor-pointer text-responsive-sm dark:text-gray-100">
-                {post.profiles?.full_name || 'Anonymous User'}
+                {post?.profiles?.full_name || 'Anonymous User'}
               </h3>
               <div className="flex items-center space-x-2">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatTimeAgo(post.created_at)}
+                  {post?.created_at ? memoizedFormatTimeAgo(post.created_at) : 'Unknown time'}
                 </p>
                 
                 {/* Show feeling if available */}

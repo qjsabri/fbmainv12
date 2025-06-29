@@ -58,42 +58,43 @@ interface PostCardProps {
 
 const PostCard = memo<PostCardProps>(({ post }) => {
   // Early return if post is undefined or null
-  if (!post || typeof post !== 'object') {
+  if (!post) {
     return null;
   }
 
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
-  const [isLiked, setIsLiked] = useState(post.user_has_liked || false);
+  const [isLiked, setIsLiked] = useState(post?.user_has_liked || false);
   const [isSaved, setIsSaved] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [likesCount, setLikesCount] = useState(post?.likes_count || 0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [currentReaction, setCurrentReaction] = useState<string | null>(null);
   const [userPollVote, setUserPollVote] = useState<number | null>(null);
   const [pollVotes, setPollVotes] = useState<Record<string, number>>(
-    () => {
-      if (post.pollOptions && Array.isArray(post.pollOptions) && post.pollOptions.length > 1) {
-        return post.pollOptions.slice(1).reduce((acc, _, index) => {
-          acc[index] = (post.pollVotes && post.pollVotes[index]) || Math.floor(Math.random() * 50);
+    (() => {
+      if (post?.pollOptions && Array.isArray(post.pollOptions) && post.pollOptions.length > 1) {
+        return post.pollOptions.slice(1).reduce((acc: Record<string, number>, _, index) => {
+          acc[index] = (post.pollVotes && typeof post.pollVotes === 'object' && post.pollVotes[index]) 
+            || Math.floor(Math.random() * 50);
           return acc;
-        }, {} as Record<string, number>);
+        }, {});
       }
       return {};
-    }
+    })()
   );
   
   const likeButtonRef = useRef<HTMLButtonElement>(null);
 
   // Check if post is saved
   React.useEffect(() => {
-    if (post.id) {
-      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []) || [];
-      if (savedPosts.includes(post.id)) {
+    if (post?.id) {
+      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
+      if (savedPosts && savedPosts.includes(post.id)) {
         setIsSaved(true);
       }
     }
-  }, [post]);
+  }, [post?.id]);
 
   const handleLike = useCallback(() => {
     setIsLiked(!isLiked);
@@ -107,19 +108,21 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     setIsSaved(newIsSaved);
     
     // Safely update saved posts in storage
-    const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []) || [];
-    if (newIsSaved) {
-      savedPosts.push(post.id);
-    } else {
-      const index = savedPosts.indexOf(post.id);
-      if (index !== -1) {
-        savedPosts.splice(index, 1);
+    if (post?.id) {
+      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []) || [];
+      if (newIsSaved) {
+        savedPosts.push(post.id);
+      } else {
+        const index = savedPosts.indexOf(post.id);
+        if (index !== -1) {
+          savedPosts.splice(index, 1);
+        }
       }
+      storage.set(STORAGE_KEYS.SAVED_POSTS, savedPosts);
     }
-    storage.set(STORAGE_KEYS.SAVED_POSTS, savedPosts);
     
     toast.success(isSaved ? 'Post removed from saved' : 'Post saved');
-  }, [isSaved, post.id]);
+  }, [isSaved, post?.id]);
 
   const handleShare = useCallback(() => {
     if (navigator.share) {
@@ -172,17 +175,18 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     setUserPollVote(optionIndex);
     setPollVotes(prev => ({
       ...prev,
-      [optionIndex]: (prev[optionIndex] || 0) + 1
+      [optionIndex]: ((prev && prev[optionIndex]) || 0) + 1
     }));
     
     // Save vote to storage
-    if (post.id) {
-      const pollVoteStorage = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {}) || {};
+    if (post?.id) {
+      const pollVoteStorage = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {});
       pollVoteStorage[post.id] = optionIndex;
       storage.set(STORAGE_KEYS.POLL_VOTES, pollVoteStorage);
     }
     
     toast.success('Vote recorded');
+  }, [userPollVote, post?.id]);
   }, [userPollVote, post]);
 
   const getTotalVotes = useCallback((): number => {
@@ -220,12 +224,12 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   }, [currentReaction]);
 
   // Determine if the post content contains a GIF
-  const hasGif = post.content?.includes('[GIF:') || false;
+  const hasGif = post?.content?.includes('[GIF:') || false;
   let gifUrl = '';
-  let contentWithoutGif = post.content || '';
+  let contentWithoutGif = post?.content || '';
   
   if (hasGif) {
-    const gifMatch = post.content?.match(/\[GIF: (.*?)\]/);
+    const gifMatch = post?.content?.match(/\[GIF: (.*?)\]/);
     if (gifMatch && gifMatch[1]) {
       gifUrl = gifMatch[1];
       contentWithoutGif = contentWithoutGif.replace(/\[GIF: .*?\]/, '').trim();
@@ -239,31 +243,31 @@ const PostCard = memo<PostCardProps>(({ post }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Avatar className="avatar-responsive">
-              <AvatarImage src={post.profiles?.avatar_url} />
+              <AvatarImage src={post?.profiles?.avatar_url} />
               <AvatarFallback className="bg-blue-500 text-white">
-                {post.profiles?.full_name?.charAt(0) || 'U'}
+                {post?.profiles?.full_name?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
               <h3 className="font-semibold text-gray-900 hover:underline cursor-pointer text-responsive-sm dark:text-gray-100">
-                {post.profiles?.full_name || 'Anonymous User'}
+                {post?.profiles?.full_name || 'Anonymous User'}
               </h3>
               <div className="flex items-center space-x-2">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatTimeAgo(post.created_at)}
+                  {post?.created_at ? formatTimeAgo(post.created_at) : 'Unknown time'}
                 </p>
                 
                 {/* Show feeling if available */}
-                {post.feeling && (
+                {post?.feeling && (
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    is feeling {post.feeling}
+                    is feeling {post?.feeling}
                   </p>
                 )}
                 
                 {/* Show location if available */}
-                {post.location && (
+                {post?.location && (
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    at {post.location}
+                    at {post?.location}
                   </p>
                 )}
               </div>
@@ -294,7 +298,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
         )}
 
         {/* Poll */}
-        {post.isPoll && post.pollOptions && (
+        {post?.isPoll && post?.pollOptions && (
           <div className="mt-4">
             <div className="bg-gray-50 p-3 rounded-lg dark:bg-gray-700">
               <h4 className="font-medium text-sm mb-3 dark:text-gray-200">{post.pollOptions[0]}</h4>
@@ -343,7 +347,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
         )}
 
         {/* Post Media */}
-        {post.image_url && (
+        {post?.image_url && (
           <div className="mt-3 w-full">
             <OptimizedImage
               src={post.image_url}
@@ -372,15 +376,17 @@ const PostCard = memo<PostCardProps>(({ post }) => {
                   )}
                   
                   {post.reactions && Object.keys(post.reactions).length > 1 && (
-                    <div className="flex -ml-1">
-                      {Object.keys(post.reactions).slice(0, 2).map((reaction, i) => (
-                        reaction !== (currentReaction || '👍') && (
-                          <div key={i} className="w-5 h-5 flex items-center justify-center">
-                            <span className="text-xs">{reaction}</span>
-                          </div>
-                        )
-                      ))}
-                    </div>
+                    Object.keys(post.reactions).length > 0 ? (
+                      <div className="flex -ml-1">
+                        {Object.keys(post.reactions).slice(0, 2).map((reaction, i) => (
+                          reaction !== (currentReaction || '👍') && (
+                            <div key={i} className="w-5 h-5 flex items-center justify-center">
+                              <span className="text-xs">{reaction}</span>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    ) : null
                   )}
                 </div>
                 <span className="hover:underline cursor-pointer text-responsive-sm">
@@ -391,7 +397,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
           </div>
           <div className="flex space-x-4 text-responsive-sm">
             <span className="hover:underline cursor-pointer" onClick={() => setShowComments(!showComments)}>
-              {post.comments_count || comments.length || 0} {post.comments_count === 1 || comments.length === 1 ? 'comment' : 'comments'}
+              {post?.comments_count || comments.length || 0} {(post?.comments_count === 1 || comments.length === 1) ? 'comment' : 'comments'}
             </span>
             <span>0 shares</span>
           </div>
@@ -527,12 +533,14 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   );
 }, (prevProps, nextProps) => {
   // Implement shouldComponentUpdate logic to prevent unnecessary re-renders
-  if (!prevProps.post || !nextProps.post) return false;
+  if (!prevProps.post || !nextProps.post) return true;
   
-  return prevProps.post.id === nextProps.post.id && 
-         prevProps.post.likes_count === nextProps.post.likes_count &&
-         prevProps.post.comments_count === nextProps.post.comments_count &&
-         prevProps.post.user_has_liked === nextProps.post.user_has_liked;
+  return (
+    prevProps.post.id === nextProps.post.id && 
+    prevProps.post.likes_count === nextProps.post.likes_count &&
+    prevProps.post.comments_count === nextProps.post.comments_count &&
+    prevProps.post.user_has_liked === nextProps.post.user_has_liked
+  );
 });
 
 PostCard.displayName = 'PostCard';

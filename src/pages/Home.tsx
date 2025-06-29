@@ -5,6 +5,7 @@ import CreatePost from '@/components/posts/CreatePost';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MOCK_IMAGES } from '@/lib/constants';
+import { toast } from 'sonner';
 
 interface Post {
   id: string;
@@ -78,6 +79,7 @@ const Home = () => {
     };
     
     setPosts([post, ...posts]);
+    toast.success('Post created successfully!');
   };
 
   return (
