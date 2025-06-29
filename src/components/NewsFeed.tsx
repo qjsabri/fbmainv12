@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import NewsFeedTabs from './NewsFeedTabs';
 import NewsFeedFilters from './NewsFeedFilters';
 import LazyComponent from './ui/LazyComponent';
+import LazyComponent from './ui/LazyComponent';
 
 const NewsFeed = () => {
   const { user } = useAuth();
@@ -297,6 +298,9 @@ const NewsFeed = () => {
         <CreatePost onCreatePost={handleCreatePost} />
         
         {/* Reels Carousel - Lazy loaded */}
+        <LazyComponent loadingStrategy="viewport">
+          <ReelsCarousel />
+        </LazyComponent>
         <LazyComponent loadingStrategy="viewport">
           <ReelsCarousel />
         </LazyComponent>

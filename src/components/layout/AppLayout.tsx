@@ -10,6 +10,7 @@ import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { ROUTES } from '@/lib/constants';
 import { Toaster } from '@/components/ui/sonner';
 import LazyComponent from '@/components/ui/LazyComponent';
+import LazyComponent from '@/components/ui/LazyComponent';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -52,6 +53,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
               <LazyComponent loadingStrategy="eager">
                 <Sidebar />
               </LazyComponent>
+                <Sidebar />
+              </LazyComponent>
             </aside>
           )}
           
@@ -64,6 +67,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           {showSidebars && showRightSidebar && (
             <aside className="right-sidebar-responsive">
               <LazyComponent loadingStrategy="lazy">
+                <RightSidebar />
+              </LazyComponent>
                 <RightSidebar />
               </LazyComponent>
             </aside>

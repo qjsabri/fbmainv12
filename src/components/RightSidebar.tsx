@@ -11,12 +11,14 @@ import EventsWidget from './EventsWidget';
 import BirthdayWidget from './BirthdayWidget';
 import GroupSuggestions from './GroupSuggestions';
 import FriendSuggestions from './FriendSuggestions';
+import FundraiserWidget from './FundraiserWidget';
 import { useFriends } from '@/hooks/useFriends';
 import { MOCK_IMAGES, getSafeImage } from '@/lib/constants';
 import OnlineStatus from './OnlineStatus';
 import { toast } from 'sonner';
+import { memo } from 'react';
 
-const RightSidebar = () => {
+const RightSidebar = memo(() => {
   const { data: friends } = useFriends();
 
   const onlineFriends = [
@@ -82,6 +84,11 @@ const RightSidebar = () => {
         {/* Group Suggestions */}
         <div className="mb-4">
           <GroupSuggestions />
+        </div>
+
+        {/* Fundraiser Widget */}
+        <div className="mb-4">
+          <FundraiserWidget />
         </div>
 
         {/* Events Widget */}
@@ -171,6 +178,7 @@ const RightSidebar = () => {
       </div>
     </div>
   );
-};
+});
 
+RightSidebar.displayName = 'RightSidebar';
 export default RightSidebar;
