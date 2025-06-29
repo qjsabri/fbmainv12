@@ -58,7 +58,7 @@ interface PostCardProps {
 
 const PostCard = memo<PostCardProps>(({ post }) => {
   // Early return if post is undefined or null
-  if (!post) {
+  if (!post || typeof post !== 'object') {
     return null;
   }
 
@@ -72,10 +72,15 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   const [currentReaction, setCurrentReaction] = useState<string | null>(null);
   const [userPollVote, setUserPollVote] = useState<number | null>(null);
   const [pollVotes, setPollVotes] = useState<Record<string, number>>(
-    post.pollOptions?.slice(1)?.reduce((acc, _, index) => {
-      acc[index] = post.pollVotes?.[index] || Math.floor(Math.random() * 50);
-      return acc;
-    }, {} as Record<string, number>) || {}
+    () => {
+      if (post.pollOptions && Array.isArray(post.pollOptions) && post.pollOptions.length > 1) {
+        return post.pollOptions.slice(1).reduce((acc, _, index) => {
+          acc[index] = (post.pollVotes && post.pollVotes[index]) || Math.floor(Math.random() * 50);
+          return acc;
+        }, {} as Record<string, number>);
+      }
+      return {};
+    }
   );
   
   const likeButtonRef = useRef<HTMLButtonElement>(null);
@@ -83,7 +88,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   // Check if post is saved
   React.useEffect(() => {
     if (post.id) {
-      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
+      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []) || [];
       if (savedPosts && savedPosts.includes(post.id)) {
         setIsSaved(true);
       }
@@ -101,8 +106,8 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     const newIsSaved = !isSaved;
     setIsSaved(newIsSaved);
     
-    // Update saved posts in storage
-    const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
+    // Safely update saved posts in storage
+    const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []) || [];
     if (newIsSaved) {
       savedPosts.push(post.id);
     } else {
@@ -171,9 +176,11 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     }));
     
     // Save vote to storage
-    const pollVotes = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {});
-    pollVotes[post.id] = optionIndex;
-    toast.success('Vote recorded');
+    if (post.id) {
+      const pollVoteStorage = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {}) || {};
+      pollVoteStorage[post.id] = optionIndex;
+      storage.set(STORAGE_KEYS.POLL_VOTES, pollVoteStorage);
+    }
   }, [userPollVote, post.id]);
 
   const getTotalVotes = useCallback((): number => {

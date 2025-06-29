@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // Memoize formatTimeAgo to avoid unnecessary recalculations
 import { memoize } from '@/lib/utils';
-const memoizedFormatTimeAgo = memoize(formatTimeAgo);
+const memoizedFormatTimeAgo = memoize(formatTimeAgo || (() => ''));
 
 interface Post {
   id: string;
@@ -56,7 +56,7 @@ interface PostCardProps {
 }
 
 const PostCard = memo<PostCardProps>(({ post }) => {
-  // Early return if post is undefined or null
+  // Early return if post is undefined or null or not an object
   if (!post) {
     return null;
   }
@@ -76,10 +76,15 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   const [currentReaction, setCurrentReaction] = useState<string | null>(null);
   const [userPollVote, setUserPollVote] = useState<number | null>(null);
   const [pollVotes, setPollVotes] = useState<Record<string, number>>(
-    post.pollOptions?.slice(1)?.reduce((acc, _, index) => {
-      acc[index] = post.pollVotes?.[index] || Math.floor(Math.random() * 50);
-      return acc;
-    }, {} as Record<string, number>) || {}
+    () => {
+      if (post.pollOptions && Array.isArray(post.pollOptions) && post.pollOptions.length > 1) {
+        return post.pollOptions.slice(1).reduce((acc, _, index) => {
+          acc[index] = (post.pollVotes && post.pollVotes[index]) || Math.floor(Math.random() * 50);
+          return acc;
+        }, {} as Record<string, number>);
+      }
+      return {};
+    }
   );
   
   const likeButtonRef = useRef<HTMLButtonElement>(null);

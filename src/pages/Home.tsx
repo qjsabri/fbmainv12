@@ -85,13 +85,23 @@ const Home = () => {
       <div className="space-y-4">
         <Stories />
         <Card>
-          <CreatePost onCreatePost={handleCreatePost} />
+          <CardContent className="p-4">
+            <CreatePost onCreatePost={handleCreatePost} />
+          </CardContent>
         </Card>
-        <div className="space-y-4">
-          {posts.map(post => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
+        {posts.length > 0 ? (
+          <div className="space-y-4">
+            {posts.map(post => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-gray-500 dark:text-gray-400">No posts yet. Create your first post!</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
