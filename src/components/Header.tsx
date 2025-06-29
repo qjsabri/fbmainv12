@@ -6,13 +6,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LiveStreamButton from './LiveStreamButton';
 import { useIsMobile } from '@/hooks/use-device';
-import { ROUTES, getSafeImage } from '@/lib/constants';
+import { ROUTES } from '@/lib/constants';
 import ThemeToggle from './ThemeToggle';
 import ReelsButton from './ReelsButton';
 import NotificationBell from './NotificationBell';
 import ChatWidget from './ChatWidget';
+import { memo } from 'react';
 
-const Header = () => {
+// Optimize Header with memoization to prevent unnecessary re-renders
+const Header = memo(() => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
@@ -151,7 +153,7 @@ const Header = () => {
                 onClick={handleProfileClick}
               >
                 <AvatarImage src={getSafeImage('AVATARS', 7)} />
-                <AvatarFallback className="text-sm">JD</AvatarFallback>
+              <AvatarImage src="https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face" />
               </Avatar>
             </div>
           </div>
@@ -237,5 +239,3 @@ const Gamepad = ({ className }: { className?: string }) => (
     <rect x="2" y="6" width="20" height="12" rx="2" />
   </svg>
 );
-
-export default Header;

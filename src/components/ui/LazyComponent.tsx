@@ -18,7 +18,7 @@ interface LazyComponentProps {
  * LazyComponent delays rendering its children until the component is visible in the viewport.
  * Useful for optimizing initial page load by deferring non-critical UI.
  */
-const LazyComponent: React.FC<LazyComponentProps> = ({
+export const LazyComponent: React.FC<LazyComponentProps> = ({
   children,
   fallback = <div className="flex justify-center items-center h-20"><Spinner size="md" color="blue" /></div>,
   threshold = 0.1,

@@ -18,6 +18,45 @@ export const debounce = <T extends (...args: unknown[]) => unknown>(
   };
 };
 
+// Improved debounce function with proper typings
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  
+  return function(...args: Parameters<T>): void {
+    const later = () => {
+      timeout = null;
+      func(...args);
+    };
+    
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+    
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Enhanced memoization for expensive calculations
+export function memoize<T extends (...args: any[]) => any>(
+  fn: T
+): (...args: Parameters<T>) => ReturnType<T> {
+  const cache = new Map<string, ReturnType<T>>();
+  
+  return (...args: Parameters<T>): ReturnType<T> => {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) {
+      return cache.get(key) as ReturnType<T>;
+    }
+    
+    const result = fn(...args);
+    cache.set(key, result);
+    return result;
+  };
+}
+
 // Format utilities
 export const formatNumber = (num: number): string => {
   if (num >= 1000000) {
@@ -29,24 +68,44 @@ export const formatNumber = (num: number): string => {
   return num.toString();
 };
 
+// Enhanced formatTimeAgo with more accurate time representations
 export const formatTimeAgo = (date: string | Date): string => {
   const now = new Date();
   const past = new Date(date);
-  const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+  const diffMs = now.getTime() - past.getTime();
+  const diffInSeconds = Math.floor(diffMs / 1000);
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
-  if (diffInSeconds < 60) return diffInSeconds <= 5 ? 'now' : `${diffInSeconds}s`;
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d`;
-  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)}w`;
+  // Check if browser supports RelativeTimeFormat
+  if (typeof Intl !== 'undefined' && Intl.RelativeTimeFormat) {
+    if (diffInSeconds < 60) return diffInSeconds <= 5 ? 'now' : rtf.format(-Math.floor(diffInSeconds), 'second');
+    if (diffInSeconds < 3600) return rtf.format(-Math.floor(diffInSeconds / 60), 'minute');
+    if (diffInSeconds < 86400) return rtf.format(-Math.floor(diffInSeconds / 3600), 'hour');
+    if (diffInSeconds < 604800) return rtf.format(-Math.floor(diffInSeconds / 86400), 'day');
+    if (diffInSeconds < 2592000) return rtf.format(-Math.floor(diffInSeconds / 604800), 'week');
   
-  // More precise month/year formatting
-  const months = Math.floor(diffInSeconds / 2592000);
-  if (months < 12) return `${months}mo`;
+    // More precise month/year formatting
+    const months = Math.floor(diffInSeconds / 2592000);
+    if (months < 12) return rtf.format(-months, 'month');
   
-  const years = Math.floor(months / 12);
-  const remainingMonths = months % 12;
-  return remainingMonths > 0 ? `${years}y ${remainingMonths}mo` : `${years}y`;
+    const years = Math.floor(months / 12);
+    return rtf.format(-years, 'year');
+  } else {
+    // Fallback for browsers that don't support RelativeTimeFormat
+    if (diffInSeconds < 60) return diffInSeconds <= 5 ? 'now' : `${diffInSeconds}s ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)}w ago`;
+    
+    // More precise month/year formatting
+    const months = Math.floor(diffInSeconds / 2592000);
+    if (months < 12) return `${months}mo ago`;
+    
+    const years = Math.floor(months / 12);
+    const remainingMonths = months % 12;
+    return remainingMonths > 0 ? `${years}y ${remainingMonths}mo ago` : `${years}y ago`;
+  }
 };
 
 export const formatDate = (date: string | Date, options: Intl.DateTimeFormatOptions = {}): string => {

@@ -4,12 +4,19 @@ import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
-import Spinner from "@/components/ui/Spinner";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ROUTES } from "@/lib/constants";
 import { Toaster } from "@/components/ui/sonner";
 import ThemeProvider from "@/components/ThemeProvider";
 import { loadCriticalResources } from "@/utils/performance";
+import { Suspense, lazy, useEffect } from "react";
+
+// Custom suspense fallback
+const SuspenseFallback = () => (
+  <div className="min-h-[80vh] flex items-center justify-center">
+    <div className="w-10 h-10 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin"></div>
+  </div>
+);
 
 // Lazy-loaded pages for better performance
 const Auth = lazy(() => import("./pages/Auth"));
@@ -41,20 +48,30 @@ const GroupDetail = lazy(() => import("./pages/GroupDetail"));
 const LiveStream = lazy(() => import("./pages/LiveStream"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Loading fallback component
-const PageLoader = () => (
-  <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-    <div className="text-center flex flex-col items-center">
-      <Spinner size="lg" color="blue" />
-      <p className="mt-3 text-gray-600 dark:text-gray-400">Loading...</p>
-    </div>
-  </div>
-);
-
 function App() {
-  React.useEffect(() => {
+  useEffect(() => {
     // Load critical resources for performance
     loadCriticalResources();
+    
+    // Add web vitals tracking
+    if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
+      try {
+        const observer = new PerformanceObserver((list) => {
+          list.getEntries().forEach(entry => {
+            if (entry.entryType === 'largest-contentful-paint') {
+              console.log('LCP:', entry.startTime);
+            } else if (entry.entryType === 'first-input') {
+              console.log('FID:', entry.processingStart - entry.startTime);
+            }
+          });
+        });
+        
+        // Observe LCP and FID
+        observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input'] });
+      } catch (e) {
+        console.warn('Performance metrics could not be observed', e);
+      }
+    }
   }, []);
 
   return (
@@ -64,7 +81,7 @@ function App() {
           <AuthProvider>
             <QueryProvider>
               <ThemeProvider>
-                <Suspense fallback={<PageLoader />}>
+                <Suspense fallback={<SuspenseFallback />}>
                   <Routes>
                     {/* Auth route - no layout */}
                     <Route path={ROUTES.AUTH} element={<Auth />} />
@@ -215,7 +232,11 @@ function App() {
                 </Suspense>
                 <Toaster 
                   position="top-right" 
-                  closeButton 
+                  closeButton
+                  toastOptions={{
+                    duration: 3000,
+                    className: 'group toast overflow-hidden',
+                  }}
                   richColors 
                   expand={false}
                   visibleToasts={3}

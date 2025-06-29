@@ -549,22 +549,22 @@
 
 /* RESPONSIVE UTILITIES */
 .hide-mobile {
-  display: none;
+  display: none !important;
 }
 
 @media (min-width: 48rem) { /* 768px+ */
   .hide-mobile {
-    display: block;
+    display: block !important;
   }
 }
 
 .show-mobile {
-  display: block;
+  display: block !important;
 }
 
 @media (min-width: 48rem) { /* 768px+ */
   .show-mobile {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -907,6 +907,7 @@
 /* Performance optimizations */
 img {
   content-visibility: auto;
+  height: auto; /* Prevent layout shifts */
 }
 
 /* Fix iOS Safari issues */
@@ -928,4 +929,22 @@ img {
 
 .overflow-wrap-anywhere {
   overflow-wrap: anywhere;
+}
+
+/* Add content-visibility for non-visible items */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto;
+}
+
+/* Prevent layout shifts */
+img, video, iframe {
+  aspect-ratio: attr(width) / attr(height);
+}
+
+/* Add GPU acceleration for animations */
+.gpu-accelerated {
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }

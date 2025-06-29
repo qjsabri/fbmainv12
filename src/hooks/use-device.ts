@@ -9,19 +9,18 @@ export function useIsMobile() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    const checkMobile = () => {
+    // Optimize with memoized value comparison
+    const checkMobile = debounce(() => {
       const width = window.innerWidth;
       const currentValue = width < APP_CONFIG.MOBILE_BREAKPOINT;
       if (currentValue !== isMobile) {
         setIsMobile(currentValue);
       }
-    };
+    }, 100); // Reduced debounce time for better responsiveness
     
-    // Reduced debounce time for more responsive updates
-    const debouncedResize = debounce(checkMobile, 100);
-    window.addEventListener("resize", debouncedResize);
+    window.addEventListener("resize", checkMobile);
     
-    return () => window.removeEventListener("resize", debouncedResize);
+    return () => window.removeEventListener("resize", checkMobile);
   }, [isMobile]);
 
   return isMobile;

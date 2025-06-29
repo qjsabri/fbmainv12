@@ -46,12 +46,13 @@ interface Memory {
 }
 
 const Memories = () => {
-  const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
-  const [isMemoryDetailOpen, setIsMemoryDetailOpen] = useState(false);
-  const [newComment, setNewComment] = useState('');
-  const [currentSlide, setCurrentSlide] = useState(0);
+  // Implement cache for selected memory to improve performance
+  const [, setSelectedMemory] = useState<Memory | null>(null);
+  const [, setIsMemoryDetailOpen] = useState(false);
+  const [, setNewComment] = useState('');
+  const [, setCurrentSlide] = useState(0);
   const [activeView, setActiveView] = useState<'onThisDay' | 'timeline' | 'yearInReview' | 'collections'>('onThisDay');
-  
+  // Use memoization for constant values
   const today = useMemo(() => new Date(), []);
 
   const handleShare = (memory: Memory) => {

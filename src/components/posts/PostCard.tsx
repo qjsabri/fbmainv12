@@ -12,6 +12,10 @@ import { STORAGE_KEYS } from '@/lib/constants';
 import { OptimizedImage } from '@/components/ui/image';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Memoize formatTimeAgo to avoid unnecessary recalculations
+import { memoize } from '@/lib/utils';
+const memoizedFormatTimeAgo = memoize(formatTimeAgo);
+
 interface Post {
   id: string;
   user_id: string;
@@ -361,7 +365,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
                             <span className="text-xs">{reaction}</span>
                           </div>
                         )
-                      ))}
+                      <span>{memoizedFormatTimeAgo(post.created_at)}</span>
                     </div>
                   )}
                 </div>
@@ -464,7 +468,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
                         </p>
                       </div>
                       <div className="flex items-center mt-1 ml-1 space-x-3 text-xs text-gray-500 dark:text-gray-400">
-                        <span>{formatTimeAgo(comment.created_at)}</span>
+                        <span className="text-xs text-gray-400 mt-1 dark:text-gray-500">{memoizedFormatTimeAgo(comment.created_at)}</span>
                         <button className="font-semibold hover:underline">Like</button>
                         <button className="font-semibold hover:underline">Reply</button>
                       </div>
@@ -507,6 +511,12 @@ const PostCard = memo<PostCardProps>(({ post }) => {
       </CardContent>
     </Card>
   );
+}, (prevProps, nextProps) => {
+  // Implement shouldComponentUpdate logic to prevent unnecessary re-renders
+  return prevProps.post.id === nextProps.post.id && 
+         prevProps.post.likes_count === nextProps.post.likes_count &&
+         prevProps.post.comments_count === nextProps.post.comments_count &&
+         prevProps.post.user_has_liked === nextProps.post.user_has_liked;
 });
 
 PostCard.displayName = 'PostCard';

@@ -106,7 +106,11 @@ const NewsFeed = () => {
   // Load more posts when scrolling to the bottom
   useEffect(() => {
     if (inView && !isLoading && hasMore) {
-      loadMorePosts();
+      // Debounce loadMore to prevent multiple calls
+      const timer = setTimeout(() => {
+        loadMorePosts();
+      }, 300);
+      return () => clearTimeout(timer);
     }
   }, [inView, isLoading, hasMore, loadMorePosts]);
 
@@ -148,6 +152,9 @@ const NewsFeed = () => {
 
   const handleApplyFilters = () => {
     setPage(1);
+    // Reset states before fetching to avoid stale data
+    setPosts([]);
+    setHasMore(true);
     fetchPosts(1, activeTab, sortBy);
     toast.success('Filters applied');
   };

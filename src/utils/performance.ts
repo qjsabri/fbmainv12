@@ -3,6 +3,7 @@ import { debounce } from '@/lib/utils';
 
 // Preload critical resources
 export const preloadResource = (href: string, as: string = 'script') => {
+  if (typeof document === 'undefined') return; // Safety check for SSR
   const link = document.createElement('link');
   link.rel = 'preload';
   link.href = href;
@@ -28,7 +29,7 @@ export const createImageObserver = (callback: (entry: IntersectionObserverEntry)
 
 // Memory usage monitor
 export const monitorMemoryUsage = () => {
-  if ('memory' in performance) {
+  if (typeof performance !== 'undefined' && 'memory' in performance) {
     const memory = (performance as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
     return {
       used: Math.round(memory.usedJSHeapSize / 1048576), // MB
@@ -140,6 +141,13 @@ export const measureWebVitals = () => {
 
 // Critical resource loading
 export const loadCriticalResources = () => {
+  if (typeof window === 'undefined') return;
+  
+  // Mark navigation start for performance metrics
+  if (window.performance && performance.mark) {
+    performance.mark('app_navigation_start');
+  }
+  
   // Add resource hints
   addResourceHints();
   
@@ -148,6 +156,24 @@ export const loadCriticalResources = () => {
   
   // Preload critical fonts
   preloadResource('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap', 'style');
+
+  // Prefetch important images
+  preloadResource('/favicon.ico', 'image');
+  
+  // Mark app ready
+  if (window.performance && performance.mark) {
+    performance.mark('app_ready');
+    try {
+      performance.measure('app_initialization', 'app_navigation_start', 'app_ready');
+      
+      const entries = performance.getEntriesByName('app_initialization');
+      if (entries.length) {
+        console.info(`App initialization: ${entries[0].duration.toFixed(2)}ms`);
+      }
+    } catch (e) {
+      console.warn('Error measuring performance:', e);
+    }
+  }
 };
 
 // Export all utilities

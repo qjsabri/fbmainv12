@@ -9,11 +9,11 @@ interface SpinnerProps {
 
 const Spinner = ({ size = 'md', color = 'primary', className }: SpinnerProps) => {
   const sizeClasses = {
-    xs: 'w-3 h-3',
-    sm: 'w-4 h-4',
-    md: 'w-6 h-6',
-    lg: 'w-8 h-8',
-    xl: 'w-12 h-12'
+    xs: 'w-3 h-3 border-[1px]',
+    sm: 'w-4 h-4 border-[1.5px]',
+    md: 'w-6 h-6 border-2',
+    lg: 'w-8 h-8 border-[2.5px]',
+    xl: 'w-12 h-12 border-3'
   };
 
   const colorClasses = {
@@ -26,10 +26,11 @@ const Spinner = ({ size = 'md', color = 'primary', className }: SpinnerProps) =>
   return (
     <div
       className={cn(
-        'animate-spin rounded-full border-2 border-t-transparent',
+        'animate-spin rounded-full border-t-transparent',
         sizeClasses[size],
         colorClasses[color],
-        className
+        className,
+        'will-change-transform'
       )}
       role="status"
       aria-label="Loading"

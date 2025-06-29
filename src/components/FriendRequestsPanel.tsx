@@ -5,20 +5,21 @@ import { Button } from '@/components/ui/button';
 import { useFriendRequests, useRespondToFriendRequest } from '@/hooks/useFriends';
 import { UserPlus, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { memo, useCallback } from 'react';
 
-const FriendRequestsPanel = () => {
+const FriendRequestsPanel = memo(() => {
   const { data: requests, isLoading } = useFriendRequests();
   const respondMutation = useRespondToFriendRequest();
 
-  const handleAccept = (requestId: string) => {
+  const handleAccept = useCallback((requestId: string) => {
     respondMutation.mutate({ requestId, status: 'accepted' });
     toast.success('Friend request accepted');
-  };
+  }, [respondMutation]);
 
-  const handleDecline = (requestId: string) => {
+  const handleDecline = useCallback((requestId: string) => {
     respondMutation.mutate({ requestId, status: 'declined' });
     toast.info('Friend request declined');
-  };
+  }, [respondMutation]);
 
   if (isLoading) {
     return (
@@ -103,6 +104,8 @@ const FriendRequestsPanel = () => {
       </CardContent>
     </Card>
   );
-};
+});
+
+FriendRequestsPanel.displayName = 'FriendRequestsPanel';
 
 export default FriendRequestsPanel;
