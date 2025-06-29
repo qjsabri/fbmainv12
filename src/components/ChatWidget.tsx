@@ -895,3 +895,7 @@ const Play = ({ className }: { className?: string }) => (
     <polygon points="5 3 19 12 5 21 5 3" />
   </svg>
 );
+
+ChatWidget.displayName = 'ChatWidget';
+
+export default ChatWidget;

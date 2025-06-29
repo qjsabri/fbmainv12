@@ -11,7 +11,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { MOCK_IMAGES } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
-
 interface LiveStreamProps {
   isOpen: boolean;
   onClose: () => void;
