@@ -98,10 +98,7 @@ export function useViewportSize() {
     
     return () => window.removeEventListener("resize", debouncedResize);
   }, [handleResize]);
-      width: window.innerWidth,
-      height: window.innerHeight
-    });
-  }, []);
+
   return size;
 }
 
