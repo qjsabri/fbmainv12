@@ -10,7 +10,7 @@ import ReelsCarousel from './ReelsCarousel';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import NewsFeedSkeleton from './NewsFeedSkeleton';
 import StoriesSkeleton from './StoriesSkeleton';
-import { AlertCircle, RefreshCw, MessageCircle, Filter } from 'lucide-react';
+import { AlertCircle, RefreshCw, MessageCircle, Filter, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MOCK_IMAGES } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -298,9 +298,6 @@ const NewsFeed = () => {
         <CreatePost onCreatePost={handleCreatePost} />
         
         {/* Reels Carousel - Lazy loaded */}
-        <LazyComponent loadingStrategy="viewport">
-          <ReelsCarousel />
-        </LazyComponent>
         <LazyComponent loadingStrategy="viewport">
           <ReelsCarousel />
         </LazyComponent>

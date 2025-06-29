@@ -53,8 +53,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
               <LazyComponent loadingStrategy="eager">
                 <Sidebar />
               </LazyComponent>
-                <Sidebar />
-              </LazyComponent>
             </aside>
           )}
           
@@ -67,8 +65,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           {showSidebars && showRightSidebar && (
             <aside className="right-sidebar-responsive">
               <LazyComponent loadingStrategy="lazy">
-                <RightSidebar />
-              </LazyComponent>
                 <RightSidebar />
               </LazyComponent>
             </aside>

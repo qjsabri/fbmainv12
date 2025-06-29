@@ -162,9 +162,14 @@ const LiveStream: React.FC<LiveStreamProps> = ({ isOpen, onClose }) => {
     }
   }, [comments]);
 
-  const handleVideoPlay = () => {};
+  // Video play/pause handlers
+  const handleVideoPlay = useCallback(() => {
+    setIsPlaying(true);
+  }, []);
   
-  const handleVideoPause = () => {};
+  const handleVideoPause = useCallback(() => {
+    setIsPlaying(false);
+  }, []);
   
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);

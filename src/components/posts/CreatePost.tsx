@@ -335,14 +335,15 @@ const CreatePost = memo<CreatePostProps>(({ onCreatePost }) => {
               <AvatarFallback>{user.user_metadata?.full_name?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              {!isExpanded ? (
+              {!isExpanded && (
                 <button
                   onClick={handleExpand}
                   className="w-full text-left p-2 sm:p-3 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors text-responsive-sm touch-target dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                 >
                   What's on your mind, {user.user_metadata?.full_name?.split(' ')[0] || 'there'}?
                 </button>
-              ) : (
+              )}
+              {isExpanded && (
                 <div className="space-y-3">
                   <Textarea 
                     placeholder={`What's on your mind, ${user.user_metadata?.full_name?.split(' ')[0] || 'there'}?`}
