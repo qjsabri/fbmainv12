@@ -1,669 +1,524 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Filter, Hash, ImageIcon, MapPin, Search, Users, Video, X } from 'lucide-react';
+import React, { useState, useRef, useCallback, memo } from 'react';
+import { MessageCircle, Share, MoreHorizontal, ThumbsUp, Bookmark } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import {
-  Badge
-} from '@/components/ui/badge';
-import {
-  Slider
-} from '@/components/ui/slider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatTimeAgo } from '@/lib/utils';
+import { toast } from 'sonner';
+import ReactionPicker from '../ReactionPicker';
+import { storage } from '@/lib/storage';
+import { STORAGE_KEYS } from '@/lib/constants';
+import { OptimizedImage } from '@/components/ui/image';
+import { motion, AnimatePresence } from 'framer-motion';
 
+// Memoize formatTimeAgo to avoid unnecessary recalculations
+import { memoize } from '@/lib/utils';
+const memoizedFormatTimeAgo = memoize(formatTimeAgo);
 
-interface AdvancedSearchProps {
-  onSearch: (filters: SearchFilters) => void;
-}
-
-interface SearchFilters {
-  query: string;
-  type: string;
-  dateRange: string;
-  location: string;
-  author: string;
-  timeRange?: [number, number]; // Hours ago
-  hashtags?: string[];
-  contentType?: string[];
-}
-
-interface RecentSearch {
+interface Post {
   id: string;
-  query: string;
-  type: string;
-  timestamp: Date;
+  user_id: string;
+  content: string;
+  image_url?: string;
+  created_at: string;
+  updated_at: string;
+  profiles: {
+    id: string;
+    full_name?: string;
+    avatar_url?: string;
+  } | null;
+  likes_count?: number;
+  comments_count?: number;
+  user_has_liked?: boolean;
+  reactions?: Record<string, number>;
+  feeling?: string;
+  location?: string;
+  tagged_friends?: string[];
+  privacy?: string;
+  is_live?: boolean;
+  isPoll?: boolean;
+  pollOptions?: string[];
+  pollVotes?: Record<string, number>;
 }
 
-const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ onSearch }) => {
-  const [filters, setFilters] = useState<SearchFilters>({
-    query: '',
-    type: 'all',
-    dateRange: 'any',
-    location: '',
-    author: ''
-  });
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  profiles: {
+    full_name?: string;
+    avatar_url?: string;
+  } | null;
+}
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [timeRange, setTimeRange] = useState<[number, number]>([0, 24]);
-  const [hashtags, setHashtags] = useState<string[]>([]);
-  const [newHashtag, setNewHashtag] = useState('');
-  const [contentTypes, setContentTypes] = useState<string[]>([]);
-  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
-  const [activeTab, setActiveTab] = useState('recent');
-  const [trendingSearches] = useState([
-    'New React features',
-    'Tech conference 2024',
-    'JavaScript tips',
-    'Web development',
-    'UI/UX design trends'
-  ]);
+interface PostCardProps {
+  post: Post;
+}
 
-  // Load recent searches from storage
-  useEffect(() => {
-    const saved = localStorage.getItem('recent_searches');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Convert string timestamps to Date objects
-        const searches = parsed.map((search: Omit<RecentSearch, 'timestamp'> & { timestamp: string }) => ({
-          ...search,
-          timestamp: new Date(search.timestamp)
-        }));
-        setRecentSearches(searches);
-      } catch (e) {
-        console.error('Failed to parse recent searches', e);
+const PostCard = memo<PostCardProps>(({ post }) => {
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [isLiked, setIsLiked] = useState(post.user_has_liked || false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [currentReaction, setCurrentReaction] = useState<string | null>(null);
+  const [userPollVote, setUserPollVote] = useState<number | null>(null);
+  const [pollVotes, setPollVotes] = useState<Record<string, number>>(
+    post.pollOptions?.slice(1).reduce((acc, _, index) => {
+      acc[index] = post.pollVotes?.[index] || Math.floor(Math.random() * 50);
+      return acc;
+    }, {} as Record<string, number>) || {}
+  );
+  
+  const likeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Check if post is saved
+  React.useEffect(() => {
+    const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
+    if (savedPosts && savedPosts.includes(post.id)) {
+      setIsSaved(true);
+    }
+  }, [post.id]);
+
+  const handleLike = useCallback(() => {
+    setIsLiked(!isLiked);
+    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+    
+    toast.success(isLiked ? 'Post unliked' : 'Post liked');
+  }, [isLiked]);
+
+  const handleSave = useCallback(() => {
+    const newIsSaved = !isSaved;
+    setIsSaved(newIsSaved);
+    
+    // Update saved posts in storage
+    const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
+    if (newIsSaved) {
+      savedPosts.push(post.id);
+    } else {
+      const index = savedPosts.indexOf(post.id);
+      if (index !== -1) {
+        savedPosts.splice(index, 1);
       }
     }
-  }, []);
-
-  const handleSearch = () => {
-    // Add to recent searches if there's a query
-    if (filters.query.trim()) {
-      const newSearch: RecentSearch = {
-        id: Date.now().toString(),
-        query: filters.query,
-        type: filters.type,
-        timestamp: new Date()
-      };
-      
-      const updatedSearches = [
-        newSearch,
-        ...recentSearches.filter(s => s.query !== filters.query).slice(0, 9) // Keep only 10 most recent
-      ];
-      
-      setRecentSearches(updatedSearches);
-      localStorage.setItem('recent_searches', JSON.stringify(updatedSearches));
-    }
+    storage.set(STORAGE_KEYS.SAVED_POSTS, savedPosts);
     
-    // Add additional filters when advanced is shown
-    let searchFilters = { ...filters };
-    if (showAdvanced) {
-      searchFilters = {
-        ...searchFilters,
-        timeRange,
-        hashtags,
-        contentType: contentTypes
-      };
-    }
-    
-    onSearch(searchFilters);
-  };
+    toast.success(isSaved ? 'Post removed from saved' : 'Post saved');
+  }, [isSaved, post.id]);
 
-  const handleFilterChange = (key: keyof SearchFilters, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-  };
-
-  const addHashtag = () => {
-    if (newHashtag && !hashtags.includes(newHashtag)) {
-      setHashtags([...hashtags, newHashtag]);
-      setNewHashtag('');
-    }
-  };
-
-  const removeHashtag = (tag: string) => {
-    setHashtags(hashtags.filter(t => t !== tag));
-  };
-
-  const toggleContentType = (type: string) => {
-    if (contentTypes.includes(type)) {
-      setContentTypes(contentTypes.filter(t => t !== type));
+  const handleShare = useCallback(() => {
+    if (navigator.share) {
+      navigator.share({
+        title: `Post by ${post.profiles?.full_name}`,
+        text: post.content,
+        url: window.location.href,
+      }).catch(err => {
+        console.error('Error sharing:', err);
+        navigator.clipboard.writeText(window.location.href);
+        toast.success('Post link copied to clipboard');
+      });
     } else {
-      setContentTypes([...contentTypes, type]);
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Post link copied to clipboard');
     }
-  };
+  }, [post.profiles?.full_name, post.content]);
 
-  const handleRecentSearch = (search: RecentSearch) => {
-    setFilters({
-      ...filters,
-      query: search.query,
-      type: search.type
-    });
+  const handleSubmitComment = useCallback(() => {
+    if (!newComment.trim()) return;
     
-    // Update timestamp
-    const updatedSearches = recentSearches.map(s => 
-      s.id === search.id ? { ...s, timestamp: new Date() } : s
-    );
+    const newCommentObj: Comment = {
+      id: Date.now().toString(),
+      content: newComment,
+      created_at: new Date().toISOString(),
+      profiles: {
+        full_name: 'You',
+        avatar_url: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face'
+      }
+    };
     
-    setRecentSearches(updatedSearches);
-    localStorage.setItem('recent_searches', JSON.stringify(updatedSearches));
-    
-    // Trigger search
-    onSearch({
-      ...filters,
-      query: search.query,
-      type: search.type
-    });
-  };
+    setComments(prev => [...prev, newCommentObj]);
+    setNewComment('');
+    toast.success('Comment added');
+  }, [newComment]);
 
-  const removeRecentSearch = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const updatedSearches = recentSearches.filter(s => s.id !== id);
-    setRecentSearches(updatedSearches);
-    localStorage.setItem('recent_searches', JSON.stringify(updatedSearches));
-  };
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmitComment();
+    }
+  }, [handleSubmitComment]);
 
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMin = Math.round(diffMs / 60000);
+  const handleVote = useCallback((optionIndex: number) => {
+    if (userPollVote !== null) {
+      toast.info('You have already voted');
+      return;
+    }
     
-    if (diffMin < 60) {
-      return `${diffMin}m ago`;
-    } else if (diffMin < 1440) {
-      return `${Math.round(diffMin / 60)}h ago`;
+    setUserPollVote(optionIndex);
+    setPollVotes(prev => ({
+      ...prev,
+      [optionIndex]: (prev[optionIndex] || 0) + 1
+    }));
+    
+    // Save vote to storage
+    const pollVotes = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {});
+    pollVotes[post.id] = optionIndex;
+    storage.set(STORAGE_KEYS.POLL_VOTES, pollVotes);
+    
+    toast.success('Vote recorded');
+  }, [userPollVote, post.id]);
+
+  const getTotalVotes = useCallback((): number => {
+    return Object.values(pollVotes).reduce((sum, count) => sum + count, 0);
+  }, [pollVotes]);
+
+  const getVotePercentage = useCallback((optionIndex: number): number => {
+    const total = getTotalVotes();
+    if (total === 0) return 0;
+    return Math.round((pollVotes[optionIndex] || 0) / total * 100);
+  }, [getTotalVotes, pollVotes]);
+
+  // Handle reactions
+  const handleReaction = useCallback((reaction: string) => {
+    setShowReactionPicker(false);
+    
+    if (currentReaction === reaction) {
+      // Remove reaction
+      setCurrentReaction(null);
+      setIsLiked(false);
+      setLikesCount(prev => prev - 1);
+      toast.success('Reaction removed');
     } else {
-      return `${Math.round(diffMin / 1440)}d ago`;
+      // Add or change reaction
+      const wasLiked = !!currentReaction;
+      setCurrentReaction(reaction);
+      setIsLiked(true);
+      
+      if (!wasLiked) {
+        setLikesCount(prev => prev + 1);
+      }
+      
+      toast.success(`Reacted with ${reaction}`);
     }
-  };
+  }, [currentReaction]);
 
-  const activeFiltersCount = Object.values(filters).filter(value => 
-    value && value !== 'all' && value !== 'any'
-  ).length + (hashtags.length > 0 ? 1 : 0) + (contentTypes.length > 0 ? 1 : 0) + (timeRange[0] > 0 || timeRange[1] < 24 ? 1 : 0);
+  // Determine if the post content contains a GIF
+  const hasGif = post.content?.includes('[GIF:');
+  let gifUrl = '';
+  let contentWithoutGif = post.content;
+  
+  if (hasGif) {
+    const gifMatch = post.content.match(/\[GIF: (.*?)\]/);
+    if (gifMatch && gifMatch[1]) {
+      gifUrl = gifMatch[1];
+      contentWithoutGif = post.content.replace(/\[GIF: .*?\]/, '').trim();
+    }
+  }
 
   return (
-    <Card className="mb-6">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Search className="w-5 h-5" />
-            <span>Advanced Search</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center space-x-2"
-          >
-            <Filter className="w-4 h-4" />
-            <span>Filters</span>
-            {activeFiltersCount > 0 && (
-              <Badge variant="secondary">{activeFiltersCount}</Badge>
-            )}
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Main Search */}
-        <div className="flex space-x-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Search for posts, people, pages, and more..."
-              value={filters.query}
-              onChange={(e) => handleFilterChange('query', e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-10"
-            />
-          </div>
-          <Button onClick={handleSearch}>Search</Button>
-        </div>
-
-        {/* Advanced Filters */}
-        {showAdvanced && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
+    <Card className="card-responsive shadow-sm hover:shadow-md transition-shadow bg-white border-0 shadow-gray-100 mb-4 dark:bg-gray-800 dark:shadow-gray-900 overflow-hidden">
+      <CardContent className="spacing-responsive">
+        {/* Post Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Avatar className="avatar-responsive">
+              <AvatarImage src={post.profiles?.avatar_url} />
+              <AvatarFallback className="bg-blue-500 text-white">
+                {post.profiles?.full_name?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
             <div>
-              <label className="block text-sm font-medium mb-1 dark:text-gray-200">Content Type</label>
-              <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Content</SelectItem>
-                  <SelectItem value="posts">
-                    <div className="flex items-center">
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      <span>Posts</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="people">
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>People</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="pages">Pages</SelectItem>
-                  <SelectItem value="groups">Groups</SelectItem>
-                  <SelectItem value="events">
-                    <div className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>Events</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="videos">
-                    <div className="flex items-center">
-                      <Video className="w-4 h-4 mr-2" />
-                      <span>Videos</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="photos">
-                    <div className="flex items-center">
-                      <ImageIcon className="w-4 h-4 mr-2" />
-                      <span>Photos</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="marketplace">Marketplace</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 dark:text-gray-200">Date Range</label>
-              <Select value={filters.dateRange} onValueChange={(value) => handleFilterChange('dateRange', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any Time</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="year">This Year</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 dark:text-gray-200">Location</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="City or region"
-                  value={filters.location}
-                  onChange={(e) => handleFilterChange('location', e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 dark:text-gray-200">Author</label>
-              <div className="relative">
-                <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Posted by"
-                  value={filters.author}
-                  onChange={(e) => handleFilterChange('author', e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Time Range (hours ago)</label>
-              <div className="px-2">
-                <Slider
-                  value={timeRange}
-                  onValueChange={setTimeRange}
-                  min={0}
-                  max={24}
-                  step={1}
-                  minStepsBetweenThumbs={1}
-                />
-                <div className="flex justify-between mt-1 text-xs text-gray-500">
-                  <span>Now</span>
-                  <span>{timeRange[0]} - {timeRange[1]} hours</span>
-                  <span>24h+</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium mb-1 dark:text-gray-200">Hashtags</label>
-              <div className="flex space-x-2 mb-2">
-                <div className="relative flex-1">
-                  <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Add hashtag"
-                    value={newHashtag}
-                    onChange={(e) => setNewHashtag(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addHashtag()}
-                    className="pl-10"
-                  />
-                </div>
-                <Button variant="outline" onClick={addHashtag}>
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {hashtags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="flex items-center space-x-1">
-                    <span>#{tag}</span>
-                    <X 
-                      className="w-3 h-3 ml-1 cursor-pointer" 
-                      onClick={() => removeHashtag(tag)} 
-                    />
-                  </Badge>
-                ))}
-                {hashtags.length === 0 && (
-                  <span className="text-sm text-gray-500">No hashtags added</span>
+              <h3 className="font-semibold text-gray-900 hover:underline cursor-pointer text-responsive-sm dark:text-gray-100">
+                {post.profiles?.full_name || 'Anonymous User'}
+              </h3>
+              <div className="flex items-center space-x-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {formatTimeAgo(post.created_at)}
+                </p>
+                
+                {/* Show feeling if available */}
+                {post.feeling && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    is feeling {post.feeling}
+                  </p>
+                )}
+                
+                {/* Show location if available */}
+                {post.location && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    at {post.location}
+                  </p>
                 )}
               </div>
             </div>
-            
-            <div className="lg:col-span-4">
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">Media Types</label>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: 'photo', label: 'Photos', icon: ImageIcon },
-                  { id: 'video', label: 'Videos', icon: Video },
-                  { id: 'text', label: 'Text Only', icon: BookOpen },
-                  { id: 'poll', label: 'Polls', icon: BarChart },
-                  { id: 'live', label: 'Live Videos', icon: Megaphone }
-                ].map(type => (
-                  <Button
-                    key={type.id}
-                    variant={contentTypes.includes(type.id) ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => toggleContentType(type.id)}
-                    className="flex items-center space-x-1"
-                  >
-                    <type.icon className="w-4 h-4 mr-1" />
-                    <span>{type.label}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
+          </div>
+          <Button variant="ghost" size="sm" className="hover:bg-gray-100 touch-target dark:hover:bg-gray-700">
+            <MoreHorizontal className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </Button>
+        </div>
 
-            <div className="lg:col-span-4 flex justify-between">
-              <Button variant="outline" onClick={() => {
-                setFilters({
-                  query: '',
-                  type: 'all',
-                  dateRange: 'any',
-                  location: '',
-                  author: ''
-                });
-                setTimeRange([0, 24]);
-                setHashtags([]);
-                setContentTypes([]);
-              }}>
-                Clear All Filters
-              </Button>
-              <Button onClick={handleSearch}>
-                Apply Filters
-              </Button>
+        {/* Post Content */}
+        <div className="mt-3">
+          <p className="text-gray-900 whitespace-pre-wrap leading-relaxed text-responsive-base dark:text-gray-100">
+            {contentWithoutGif}
+          </p>
+        </div>
+
+        {/* GIF Content */}
+        {hasGif && gifUrl && (
+          <div className="mt-3">
+            <img 
+              src={gifUrl} 
+              alt="GIF" 
+              className="rounded-lg max-h-80 mx-auto"
+              loading="lazy"
+            />
+          </div>
+        )}
+
+        {/* Poll */}
+        {post.isPoll && post.pollOptions && (
+          <div className="mt-4">
+            <div className="bg-gray-50 p-3 rounded-lg dark:bg-gray-700">
+              <h4 className="font-medium text-sm mb-3 dark:text-gray-200">{post.pollOptions[0]}</h4>
+              <div className="space-y-2">
+                {post.pollOptions.slice(1).map((option, index) => {
+                  const percentage = getVotePercentage(index);
+                  const isSelected = userPollVote === index;
+                  
+                  return (
+                    <div 
+                      key={index}
+                      className={`relative p-3 rounded-lg cursor-pointer border transition-all ${
+                        isSelected 
+                          ? 'border-blue-500 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/30' 
+                          : 'border-gray-200 hover:border-gray-300 dark:border-gray-600 dark:hover:border-gray-500'
+                      }`}
+                      onClick={() => handleVote(index)}
+                    >
+                      {/* Background progress bar */}
+                      {userPollVote !== null && (
+                        <div 
+                          className="absolute inset-0 bg-blue-100 rounded-lg dark:bg-blue-900/20"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      )}
+                      
+                      {/* Option content */}
+                      <div className="relative flex justify-between items-center">
+                        <span className="text-sm dark:text-gray-200">{option}</span>
+                        {userPollVote !== null && (
+                          <span className="text-sm font-medium dark:text-gray-300">{percentage}%</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {userPollVote !== null && (
+                <p className="text-xs text-gray-500 mt-2 dark:text-gray-400">
+                  {getTotalVotes()} votes
+                </p>
+              )}
             </div>
           </div>
         )}
 
-        {/* Search History and Suggestions */}
-        <div className="pt-2 mt-2 border-t">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-3">
-              <TabsTrigger value="recent">Recent Searches</TabsTrigger>
-              <TabsTrigger value="trending">Trending</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="recent">
-              <div className="space-y-2">
-                {recentSearches.length > 0 ? (
-                  recentSearches.map((search) => (
-                    <div 
-                      key={search.id} 
-                      className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 p-2 rounded-md cursor-pointer dark:bg-gray-800 dark:hover:bg-gray-700"
-                      onClick={() => handleRecentSearch(search)}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Search className="w-4 h-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm font-medium dark:text-gray-200">{search.query}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {search.type !== 'all' ? search.type : 'All content'} • {formatTimeAgo(search.timestamp)}
-                          </p>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 w-7 p-0"
-                        onClick={(e) => removeRecentSearch(search.id, e)}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
+        {/* Post Media */}
+        {post.image_url && (
+          <div className="mt-3 w-full">
+            <OptimizedImage
+              src={post.image_url}
+              alt="Post content"
+              className="w-full h-auto max-h-96 object-cover rounded-md cursor-pointer hover:opacity-95 transition-opacity"
+              loading="lazy"
+              loadingMode="blur"
+            />
+          </div>
+        )}
+
+        {/* Reaction Summary */}
+        <div className="mt-3 pt-3 px-1 flex items-center justify-between text-sm text-gray-500 border-t border-gray-100 dark:border-gray-700 dark:text-gray-400">
+          <div className="flex items-center space-x-1">
+            {likesCount > 0 && (
+              <>
+                <div className="flex -space-x-1">
+                  {currentReaction ? (
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center">
+                      <span className="text-xs">{currentReaction}</span>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                    <Clock className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                    <p>No recent searches</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="trending">
-              <div className="space-y-2">
-                {trendingSearches.map((search, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center space-x-3 p-2 bg-gray-50 hover:bg-gray-100 rounded-md cursor-pointer dark:bg-gray-800 dark:hover:bg-gray-700"
-                    onClick={() => {
-                      setFilters({...filters, query: search});
-                      handleSearch();
-                    }}
-                  >
-                    <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center dark:bg-gray-700">
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{index + 1}</span>
+                  ) : (
+                    <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                      <ThumbsUp className="w-3 h-3 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium dark:text-gray-200">{search}</p>
-                      <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
-                        <TrendingUp className="w-3 h-3" />
-                        <span>Trending</span>
-                      </div>
+                  )}
+                  
+                  {post.reactions && Object.keys(post.reactions).length > 1 && (
+                    <div className="flex -ml-1">
+                      {Object.keys(post.reactions).slice(0, 2).map((reaction, i) => (
+                        reaction !== (currentReaction || '👍') && (
+                          <div key={i} className="w-5 h-5 flex items-center justify-center">
+                            <span className="text-xs">{reaction}</span>
+                          </div>
+                        )
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
+                  )}
+                </div>
+                <span className="hover:underline cursor-pointer text-responsive-sm">
+                  {likesCount} {likesCount === 1 ? 'reaction' : 'reactions'}
+                </span>
+              </>
+            )}
+          </div>
+          <div className="flex space-x-4 text-responsive-sm">
+            <span className="hover:underline cursor-pointer" onClick={() => setShowComments(!showComments)}>
+              {post.comments_count || comments.length || 0} {post.comments_count === 1 || comments.length === 1 ? 'comment' : 'comments'}
+            </span>
+            <span>0 shares</span>
+          </div>
         </div>
 
-        {/* Active Filters Display */}
-        {activeFiltersCount > 0 && (
-          <div className="flex flex-wrap gap-2 pt-2 border-t">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
-            {filters.type !== 'all' && (
-              <Badge variant="secondary" className="flex items-center space-x-1">
-                <BookOpen className="w-3 h-3" />
-                <span>{filters.type}</span>
-              </Badge>
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between mt-1 relative">
+          <div className="flex items-center space-x-1">
+            <Button
+              ref={likeButtonRef}
+              variant="ghost"
+              className={`flex items-center space-x-2 button-responsive rounded-lg transition-colors ${
+                isLiked 
+                  ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30' 
+                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+              }`}
+              onClick={handleLike}
+              onMouseEnter={() => setShowReactionPicker(true)}
+              onMouseLeave={() => setTimeout(() => setShowReactionPicker(false), 500)}
+            >
+              {currentReaction ? (
+                <span className="text-xl">{currentReaction}</span>
+              ) : (
+                <ThumbsUp className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+              )}
+              <span className="font-medium text-responsive-sm">
+                {currentReaction ? 'Reacted' : 'Like'}
+              </span>
+            </Button>
+
+            {showReactionPicker && (
+              <ReactionPicker 
+                onSelect={handleReaction} 
+                position="top"
+                className="z-10"
+              />
             )}
-            {filters.dateRange !== 'any' && (
-              <Badge variant="secondary" className="flex items-center space-x-1">
-                <Calendar className="w-3 h-3" />
-                <span>{filters.dateRange}</span>
-              </Badge>
-            )}
-            {filters.location && (
-              <Badge variant="secondary" className="flex items-center space-x-1">
-                <MapPin className="w-3 h-3" />
-                <span>{filters.location}</span>
-              </Badge>
-            )}
-            {filters.author && (
-              <Badge variant="secondary" className="flex items-center space-x-1">
-                <Users className="w-3 h-3" />
-                <span>{filters.author}</span>
-              </Badge>
-            )}
-            {(timeRange[0] > 0 || timeRange[1] < 24) && (
-              <Badge variant="secondary" className="flex items-center space-x-1">
-                <Clock className="w-3 h-3" />
-                <span>{timeRange[0]}-{timeRange[1]}h</span>
-              </Badge>
-            )}
-            {hashtags.length > 0 && (
-              <Badge variant="secondary" className="flex items-center space-x-1">
-                <Tag className="w-3 h-3" />
-                <span>{hashtags.length} hashtags</span>
-              </Badge>
-            )}
-            {contentTypes.length > 0 && (
-              <Badge variant="secondary" className="flex items-center space-x-1">
-                <Filter className="w-3 h-3" />
-                <span>{contentTypes.length} types</span>
-              </Badge>
-            )}
+
+            <Button
+              variant="ghost"
+              className="flex items-center space-x-2 button-responsive rounded-lg text-gray-600 hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-800"
+              onClick={() => setShowComments(!showComments)}
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span className="font-medium text-responsive-sm">Comment</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              className="flex items-center space-x-2 button-responsive rounded-lg text-gray-600 hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-800"
+              onClick={handleShare}
+            >
+              <Share className="w-5 h-5" />
+              <span className="font-medium text-responsive-sm">Share</span>
+            </Button>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSave}
+            className={`${isSaved ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-600 dark:text-gray-300'} hover:bg-gray-100 dark:hover:bg-gray-800`}
+          >
+            <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
+          </Button>
+        </div>
+
+        {/* Comments Section */}
+        {showComments && (
+          <div className="mt-3 pt-3 border-t border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
+            <div className="max-h-64 overflow-y-auto scrollbar-thin px-3 space-y-3">
+              {comments.length > 0 ? (
+                comments.map((comment) => (
+                  <div key={comment.id} className="flex space-x-3">
+                    <Avatar className="w-8 h-8 flex-shrink-0">
+                      <AvatarImage src={comment.profiles?.avatar_url} />
+                      <AvatarFallback className="bg-gray-400 text-white text-xs dark:bg-gray-600">
+                        {comment.profiles?.full_name?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="bg-white rounded-lg px-3 py-2 shadow-sm dark:bg-gray-800">
+                        <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                          {comment.profiles?.full_name || 'Anonymous User'}
+                        </p>
+                        <p className="text-gray-800 break-words text-responsive-sm dark:text-gray-200">
+                          {comment.content}
+                        </p>
+                      </div>
+                      <div className="flex items-center mt-1 ml-1 space-x-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-xs text-gray-400 mt-1 dark:text-gray-500">{memoizedFormatTimeAgo(comment.created_at)}</span>
+                        <button className="font-semibold hover:underline">Like</button>
+                        <button className="font-semibold hover:underline">Reply</button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 text-responsive-sm py-4 dark:text-gray-400">
+                  No comments yet. Be the first to comment!
+                </div>
+              )}
+            </div>
+            
+            {/* Add Comment - Optimized for mobile */}
+            <div className="mt-3 pt-3 border-t border-gray-200 px-3 pb-3 flex space-x-2 dark:border-gray-700">
+              <Avatar className="w-8 h-8 flex-shrink-0">
+                <AvatarImage src="https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face" />
+                <AvatarFallback className="bg-blue-500 text-white text-xs">U</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 flex space-x-2">
+                <Input
+                  placeholder="Write a comment..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="rounded-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm h-9 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                />
+                <Button 
+                  onClick={handleSubmitComment} 
+                  size="sm"
+                  disabled={!newComment.trim()}
+                  className="rounded-full px-3 h-9 min-w-[60px]"
+                >
+                  Post
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </CardContent>
     </Card>
   );
-};
+}, (prevProps, nextProps) => {
+  // Implement shouldComponentUpdate logic to prevent unnecessary re-renders
+  return prevProps.post.id === nextProps.post.id && 
+         prevProps.post.likes_count === nextProps.post.likes_count &&
+         prevProps.post.comments_count === nextProps.post.comments_count &&
+         prevProps.post.user_has_liked === nextProps.post.user_has_liked;
+});
 
-// BarChart icon component
-function BarChart({ className }: { className?: string }) {
-  return (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <line x1="12" y1="20" x2="12" y2="10" />
-    <line x1="18" y1="20" x2="18" y2="4" />
-    <line x1="6" y1="20" x2="6" y2="16" />
-   </svg>
-  );
-}
+PostCard.displayName = 'PostCard';
 
-// BookOpen icon component
-function BookOpen({ className }: { className?: string }) {
-  return (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-  </svg>
-  );
-}
-
-// Tag icon component
-function Tag({ className }: { className?: string }) {
-  return (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-    <line x1="7" y1="7" x2="7.01" y2="7" />
-  </svg>
-  );
-}
-
-// Clock icon component
-function Clock({ className }: { className?: string }) {
-  return (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-  );
-}
-
-// Megaphone icon component
-function Megaphone({ className }: { className?: string }) {
-  return (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="m3 11 18-5v12L3 14v-3z" />
-    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-  </svg>
-  );
-}
-
-// TrendingUp icon component
-function TrendingUp({ className }: { className?: string }) {
-  return (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-    <polyline points="17 6 23 6 23 12" />
-  </svg>
-  );
-}
-
-export default AdvancedSearch;
+export default PostCard;
