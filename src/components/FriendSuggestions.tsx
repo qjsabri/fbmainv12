@@ -56,6 +56,11 @@ interface PostCardProps {
 }
 
 const PostCard = memo<PostCardProps>(({ post }) => {
+  // Early return if post is undefined or null
+  if (!post) {
+    return null;
+  }
+
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isLiked, setIsLiked] = useState(post.user_has_liked || false);
@@ -76,11 +81,13 @@ const PostCard = memo<PostCardProps>(({ post }) => {
 
   // Check if post is saved
   React.useEffect(() => {
-    const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
-    if (savedPosts && savedPosts.includes(post.id)) {
-      setIsSaved(true);
+    if (post && post.id) {
+      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
+      if (savedPosts && savedPosts.includes(post.id)) {
+        setIsSaved(true);
+      }
     }
-  }, [post.id]);
+  }, [post]);
 
   const handleLike = useCallback(() => {
     setIsLiked(!isLiked);
@@ -111,8 +118,8 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   const handleShare = useCallback(() => {
     if (navigator.share) {
       navigator.share({
-        title: `Post by ${post.profiles?.full_name}`,
-        text: post.content,
+        title: `Post by ${post?.profiles?.full_name || 'Unknown'}`,
+        text: post?.content || '',
         url: window.location.href,
       }).catch(err => {
         console.error('Error sharing:', err);
@@ -123,7 +130,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Post link copied to clipboard');
     }
-  }, [post.profiles?.full_name, post.content]);
+  }, [post?.profiles?.full_name, post?.content]);
 
   const handleSubmitComment = useCallback(() => {
     if (!newComment.trim()) return;
@@ -164,11 +171,12 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     
     // Save vote to storage
     const pollVotes = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {});
-    pollVotes[post.id] = optionIndex;
+    pollVotes[post?.id || ''] = optionIndex;
     storage.set(STORAGE_KEYS.POLL_VOTES, pollVotes);
     
     toast.success('Vote recorded');
   }, [userPollVote, post.id]);
+  }, [userPollVote, post?.id]);
 
   const getTotalVotes = useCallback((): number => {
     return Object.values(pollVotes).reduce((sum, count) => sum + count, 0);
@@ -205,15 +213,15 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   }, [currentReaction]);
 
   // Determine if the post content contains a GIF
-  const hasGif = post.content?.includes('[GIF:');
+  const hasGif = post?.content?.includes('[GIF:') || false;
   let gifUrl = '';
-  let contentWithoutGif = post.content;
+  let contentWithoutGif = post?.content || '';
   
   if (hasGif) {
-    const gifMatch = post.content.match(/\[GIF: (.*?)\]/);
+    const gifMatch = post?.content?.match(/\[GIF: (.*?)\]/);
     if (gifMatch && gifMatch[1]) {
       gifUrl = gifMatch[1];
-      contentWithoutGif = post.content.replace(/\[GIF: .*?\]/, '').trim();
+      contentWithoutGif = (post?.content || '').replace(/\[GIF: .*?\]/, '').trim();
     }
   }
 
@@ -512,10 +520,10 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   );
 }, (prevProps, nextProps) => {
   // Implement shouldComponentUpdate logic to prevent unnecessary re-renders
-  return prevProps.post.id === nextProps.post.id && 
-         prevProps.post.likes_count === nextProps.post.likes_count &&
-         prevProps.post.comments_count === nextProps.post.comments_count &&
-         prevProps.post.user_has_liked === nextProps.post.user_has_liked;
+  return prevProps.post?.id === nextProps.post?.id && 
+         prevProps.post?.likes_count === nextProps.post?.likes_count &&
+         prevProps.post?.comments_count === nextProps.post?.comments_count &&
+         prevProps.post?.user_has_liked === nextProps.post?.user_has_liked;
 });
 
 PostCard.displayName = 'PostCard';

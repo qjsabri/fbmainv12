@@ -57,6 +57,11 @@ interface PostCardProps {
 }
 
 const PostCard = memo<PostCardProps>(({ post }) => {
+  // Early return if post is undefined or null
+  if (!post) {
+    return null;
+  }
+
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isLiked, setIsLiked] = useState(post?.user_has_liked || false);
@@ -77,13 +82,13 @@ const PostCard = memo<PostCardProps>(({ post }) => {
 
   // Check if post is saved
   React.useEffect(() => {
-    if (post?.id) {
+    if (post && post.id) {
       const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
       if (savedPosts && savedPosts.includes(post.id)) {
         setIsSaved(true);
       }
     }
-  }, [post?.id]);
+  }, [post]);
 
   const handleLike = useCallback(() => {
     setIsLiked(!isLiked);
@@ -114,8 +119,8 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   const handleShare = useCallback(() => {
     if (navigator.share) {
       navigator.share({
-        title: `Post by ${post.profiles?.full_name}`,
-        text: post.content,
+        title: `Post by ${post?.profiles?.full_name || 'Unknown'}`,
+        text: post?.content || '',
         url: window.location.href,
       }).catch(err => {
         console.error('Error sharing:', err);
@@ -126,7 +131,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Post link copied to clipboard');
     }
-  }, [post.profiles?.full_name, post.content]);
+  }, [post?.profiles?.full_name, post?.content]);
 
   const handleSubmitComment = useCallback(() => {
     if (!newComment.trim()) return;
@@ -167,11 +172,12 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     
     // Save vote to storage
     const pollVotes = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {});
-    pollVotes[post.id] = optionIndex;
+    pollVotes[post?.id || ''] = optionIndex;
     storage.set(STORAGE_KEYS.POLL_VOTES, pollVotes);
     
     toast.success('Vote recorded');
   }, [userPollVote, post.id]);
+  }, [userPollVote, post?.id]);
 
   const getTotalVotes = useCallback((): number => {
     return Object.values(pollVotes).reduce((sum, count) => sum + count, 0);
@@ -208,15 +214,15 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   }, [currentReaction]);
 
   // Determine if the post content contains a GIF
-  const hasGif = post.content?.includes('[GIF:');
+  const hasGif = post?.content?.includes('[GIF:') || false;
   let gifUrl = '';
-  let contentWithoutGif = post.content;
+  let contentWithoutGif = post?.content || '';
   
   if (hasGif) {
-    const gifMatch = post.content.match(/\[GIF: (.*?)\]/);
+    const gifMatch = post?.content?.match(/\[GIF: (.*?)\]/);
     if (gifMatch && gifMatch[1]) {
       gifUrl = gifMatch[1];
-      contentWithoutGif = post.content.replace(/\[GIF: .*?\]/, '').trim();
+      contentWithoutGif = (post?.content || '').replace(/\[GIF: .*?\]/, '').trim();
     }
   }
 
@@ -227,29 +233,29 @@ const PostCard = memo<PostCardProps>(({ post }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Avatar className="avatar-responsive">
-              <AvatarImage src={post.profiles?.avatar_url} />
+              <AvatarImage src={post?.profiles?.avatar_url} />
               <AvatarFallback className="bg-blue-500 text-white">
-                {post.profiles?.full_name?.charAt(0) || 'U'}
+                {post?.profiles?.full_name?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
               <h3 className="font-semibold text-gray-900 hover:underline cursor-pointer text-responsive-sm dark:text-gray-100">
-                {post.profiles?.full_name || 'Anonymous User'}
+                {post?.profiles?.full_name || 'Anonymous User'}
               </h3>
               <div className="flex items-center space-x-2">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatTimeAgo(post.created_at)}
+                  {formatTimeAgo(post?.created_at || '')}
                 </p>
                 
                 {/* Show feeling if available */}
-                {post.feeling && (
+                {post?.feeling && (
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     is feeling {post.feeling}
                   </p>
                 )}
                 
                 {/* Show location if available */}
-                {post.location && (
+                {post?.location && (
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     at {post.location}
                   </p>
@@ -282,12 +288,12 @@ const PostCard = memo<PostCardProps>(({ post }) => {
         )}
 
         {/* Poll */}
-        {post.isPoll && post.pollOptions && (
+        {post?.isPoll && post?.pollOptions && (
           <div className="mt-4">
             <div className="bg-gray-50 p-3 rounded-lg dark:bg-gray-700">
-              <h4 className="font-medium text-sm mb-3 dark:text-gray-200">{post.pollOptions[0]}</h4>
+              <h4 className="font-medium text-sm mb-3 dark:text-gray-200">{post?.pollOptions?.[0]}</h4>
               <div className="space-y-2">
-                {post.pollOptions.slice(1).map((option, index) => {
+                {post?.pollOptions?.slice(1)?.map((option, index) => {
                   const percentage = getVotePercentage(index);
                   const isSelected = userPollVote === index;
                   
@@ -331,7 +337,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
         )}
 
         {/* Post Media */}
-        {post.image_url && (
+        {post?.image_url && (
           <div className="mt-3 w-full">
             <OptimizedImage
               src={post.image_url}
@@ -360,8 +366,9 @@ const PostCard = memo<PostCardProps>(({ post }) => {
                   )}
                   
                   {post.reactions && Object.keys(post.reactions).length > 1 && (
+                  {post?.reactions && Object.keys(post.reactions).length > 1 && (
                     <div className="flex -ml-1">
-                      {Object.keys(post.reactions).slice(0, 2).map((reaction, i) => (
+                      {Object.keys(post?.reactions || {}).slice(0, 2).map((reaction, i) => (
                         reaction !== (currentReaction || '👍') && (
                           <div key={i} className="w-5 h-5 flex items-center justify-center">
                             <span className="text-xs">{reaction}</span>
@@ -379,7 +386,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
           </div>
           <div className="flex space-x-4 text-responsive-sm">
             <span className="hover:underline cursor-pointer" onClick={() => setShowComments(!showComments)}>
-              {post.comments_count || comments.length || 0} {post.comments_count === 1 || comments.length === 1 ? 'comment' : 'comments'}
+              {post?.comments_count || comments.length || 0} {post?.comments_count === 1 || comments.length === 1 ? 'comment' : 'comments'}
             </span>
             <span>0 shares</span>
           </div>
@@ -515,10 +522,10 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   );
 }, (prevProps, nextProps) => {
   // Implement shouldComponentUpdate logic to prevent unnecessary re-renders
-  return prevProps.post.id === nextProps.post.id && 
-         prevProps.post.likes_count === nextProps.post.likes_count &&
-         prevProps.post.comments_count === nextProps.post.comments_count &&
-         prevProps.post.user_has_liked === nextProps.post.user_has_liked;
+  return prevProps.post?.id === nextProps.post?.id && 
+         prevProps.post?.likes_count === nextProps.post?.likes_count &&
+         prevProps.post?.comments_count === nextProps.post?.comments_count &&
+         prevProps.post?.user_has_liked === nextProps.post?.user_has_liked;
 });
 
 PostCard.displayName = 'PostCard';
