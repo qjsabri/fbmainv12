@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LiveStreamButton from './LiveStreamButton';
 import { useIsMobile } from '@/hooks/use-device';
-import { ROUTES } from '@/lib/constants';
+import { ROUTES, getSafeImage } from '@/lib/constants';
 import ThemeToggle from './ThemeToggle';
 import ReelsButton from './ReelsButton';
 import NotificationBell from './NotificationBell';
