@@ -9,7 +9,7 @@ interface NewsFeedTabsProps {
 
 const NewsFeedTabs: React.FC<NewsFeedTabsProps> = ({ activeTab, onTabChange }) => {
   return (
-    <Tabs value={activeTab} onValueChange={(value) => onTabChange(value)} className="w-full">
+    <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
       <TabsList className="w-full">
         <TabsTrigger value="foryou" className="flex items-center space-x-1 text-xs sm:text-sm whitespace-nowrap">
           <Sparkles className="w-4 h-4" />

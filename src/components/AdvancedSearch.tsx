@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatTimeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
-import ReactionPicker from './ReactionPicker';
+import ReactionPicker from '../ReactionPicker';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/constants';
 import { OptimizedImage } from '@/components/ui/image';
@@ -57,8 +57,6 @@ interface PostCardProps {
 }
 
 const PostCard = memo<PostCardProps>(({ post }) => {
-  if (!post) return null;
-
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isLiked, setIsLiked] = useState(post.user_has_liked || false);
