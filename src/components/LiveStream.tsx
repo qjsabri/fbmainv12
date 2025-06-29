@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, Heart, MessageCircle, Mic, Monitor, Send, Settings, Share, Users, Video } from 'lucide-react';
+import { Camera, Heart, MessageCircle, Mic, Monitor, Send, Settings, Share, Users, Video, VideoOff, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -37,7 +37,7 @@ const LiveStream: React.FC<LiveStreamProps> = ({ isOpen, onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const stopCamera = useCallback(() => {
+
   const stopCamera = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject && !fallbackMode) {
       const stream = videoRef.current.srcObject as MediaStream;
@@ -177,8 +177,6 @@ const LiveStream: React.FC<LiveStreamProps> = ({ isOpen, onClose }) => {
       secs.toString().padStart(2, '0')
     ].filter(Boolean).join(':');
   };
-
-
 
   const startStream = () => {
     if (!streamTitle.trim()) {
