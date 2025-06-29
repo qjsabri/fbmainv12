@@ -83,8 +83,10 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   // Check if post is saved
   React.useEffect(() => {
     if (post.id) {
-    if (savedPosts && savedPosts.includes(post.id)) {
-      setIsSaved(true);
+      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
+      if (savedPosts && savedPosts.includes(post.id)) {
+        setIsSaved(true);
+      }
     }
   }, [post.id]);
 
