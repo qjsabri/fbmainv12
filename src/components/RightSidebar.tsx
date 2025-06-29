@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatTimeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
-import ReactionPicker from '@/components/ReactionPicker';
+import ReactionPicker from './ReactionPicker';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/constants';
 import { OptimizedImage } from '@/components/ui/image';
@@ -513,33 +513,14 @@ const PostCard = memo<PostCardProps>(({ post }) => {
       </CardContent>
     </Card>
   );
+}, (prevProps, nextProps) => {
+  // Implement shouldComponentUpdate logic to prevent unnecessary re-renders
+  return prevProps.post.id === nextProps.post.id && 
+         prevProps.post.likes_count === nextProps.post.likes_count &&
+         prevProps.post.comments_count === nextProps.post.comments_count &&
+         prevProps.post.user_has_liked === nextProps.post.user_has_liked;
 });
 
 PostCard.displayName = 'PostCard';
 
-// Mock post for RightSidebar
-const mockPost = {
-  id: "mock-1",
-  user_id: "mock-user",
-  content: "This is a sample post for the sidebar",
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  profiles: {
-    id: "mock-profile",
-    full_name: "Demo User",
-    avatar_url: "https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face"
-  },
-  likes_count: 42,
-  comments_count: 7,
-  user_has_liked: false
-};
-
-const RightSidebar = () => {
-  return (
-    <div className="p-2 md:p-4 space-y-3 md:space-y-4 w-full h-full overflow-y-auto scrollbar-thin">
-      <PostCard post={mockPost} />
-    </div>
-  );
-};
-
-export default RightSidebar;
+export default PostCard;
