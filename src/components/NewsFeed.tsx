@@ -1,451 +1,524 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useInView } from 'react-intersection-observer';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContextType';
-import { Post } from '@/types';
-import CreatePost from './posts/CreatePost';
-import PostCard from './posts/PostCard';
-import Stories from './Stories';
-import ReelsCarousel from './ReelsCarousel';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import NewsFeedSkeleton from './NewsFeedSkeleton';
-import StoriesSkeleton from './StoriesSkeleton';
-import { AlertCircle, RefreshCw, MessageCircle, Filter, BookOpen } from 'lucide-react';
+import React, { useState, useRef, useCallback, memo } from 'react';
+import { MessageCircle, Share, MoreHorizontal, ThumbsUp, Bookmark } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MOCK_IMAGES } from '@/lib/constants';
+import { formatTimeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
-import NewsFeedTabs from './NewsFeedTabs';
-import LazyComponent from './ui/LazyComponent';
+import ReactionPicker from '../ReactionPicker';
+import { storage } from '@/lib/storage';
+import { STORAGE_KEYS } from '@/lib/constants';
+import { OptimizedImage } from '@/components/ui/image';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const NewsFeed = () => {
-  const { user } = useAuth();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [hasNewPosts, setHasNewPosts] = useState(false);
-  const [page, setPage] = useState<number>(1);
-  const [hasMore, setHasMore] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState('foryou');
-  const [sortBy, setSortBy] = useState('recent');
-  const [isStoriesLoading, setIsStoriesLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
-  const [filterCreator, setFilterCreator] = useState('');
-  const [filterDateRange, setFilterDateRange] = useState('all');
-  const [filterLocation, setFilterLocation] = useState('');
-  const [filterLiked, setFilterLiked] = useState(false);
-  const [filterSaved, setFilterSaved] = useState(false);
+// Memoize formatTimeAgo to avoid unnecessary recalculations
+import { memoize } from '@/lib/utils';
+const memoizedFormatTimeAgo = memoize(formatTimeAgo);
+
+interface Post {
+  id: string;
+  user_id: string;
+  content: string;
+  image_url?: string;
+  created_at: string;
+  updated_at: string;
+  profiles: {
+    id: string;
+    full_name?: string;
+    avatar_url?: string;
+  } | null;
+  likes_count?: number;
+  comments_count?: number;
+  user_has_liked?: boolean;
+  reactions?: Record<string, number>;
+  feeling?: string;
+  location?: string;
+  tagged_friends?: string[];
+  privacy?: string;
+  is_live?: boolean;
+  isPoll?: boolean;
+  pollOptions?: string[];
+  pollVotes?: Record<string, number>;
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  profiles: {
+    full_name?: string;
+    avatar_url?: string;
+  } | null;
+}
+
+interface PostCardProps {
+  post: Post;
+}
+
+const PostCard = memo<PostCardProps>(({ post }) => {
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [isLiked, setIsLiked] = useState(post.user_has_liked || false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [currentReaction, setCurrentReaction] = useState<string | null>(null);
+  const [userPollVote, setUserPollVote] = useState<number | null>(null);
+  const [pollVotes, setPollVotes] = useState<Record<string, number>>(
+    post.pollOptions?.slice(1).reduce((acc, _, index) => {
+      acc[index] = post.pollVotes?.[index] || Math.floor(Math.random() * 50);
+      return acc;
+    }, {} as Record<string, number>) || {}
+  );
   
-  const { ref, inView } = useInView({
-    threshold: 0.1,
-    triggerOnce: false
-  });
+  const likeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const fetchPosts = useCallback((pageNum: number, filter = activeTab, sort = sortBy) => {
-    setIsLoading(true);
-    setError(null);
-    
-    // Simulate API call with filtering
-    setTimeout(() => {
-      try {
-        let mockPosts = generateMockPosts(pageNum, 5, filter);
-        
-        // Apply additional filters
-        if (filterCreator) {
-          mockPosts = mockPosts.filter(post => 
-            post.profiles?.full_name?.toLowerCase().includes(filterCreator.toLowerCase())
-          );
-        }
-        
-        if (typeof filterDateRange === 'object' && filterDateRange.start && filterDateRange.end) {
-          mockPosts = mockPosts.filter(post => {
-            const postDate = new Date(post.created_at);
-            return postDate >= filterDateRange.start && postDate <= filterDateRange.end;
-          });
-        }
-        
-        // Apply sorting
-        if (sort === 'most_recent') {
-          mockPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        } else if (sort === 'most_relevant') {
-          mockPosts.sort((a, b) => (b.likes_count + b.comments_count) - (a.likes_count + a.comments_count));
-        }
-        
-        if (pageNum === 1) {
-          setPosts(mockPosts);
-        } else {
-          setPosts(prev => [...prev, ...mockPosts]);
-        }
-        
-        setHasMore(mockPosts.length === 5);
-      } catch (err) {
-        setError('Failed to load posts. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    }, 800);
-  }, [activeTab, sortBy, filterCreator, filterDateRange]);
-
-  const loadMorePosts = useCallback(() => {
-    if (isLoading) return;
-    // Prevent loading more if already reached the end
-    if (!hasMore) return;
-    
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchPosts(nextPage, activeTab, sortBy);
-  }, [page, fetchPosts, activeTab, sortBy, isLoading, hasMore]);
-
-  useEffect(() => {
-    // Fetch initial posts and simulate stories loading
-    fetchPosts(1, activeTab, sortBy);
-    const timer = setTimeout(() => setIsStoriesLoading(false), 1500);
-    return () => clearTimeout(timer);
-  }, [fetchPosts, activeTab, sortBy]);
-  
-  // Load more posts when scrolling to the bottom
-  useEffect(() => {
-    if (inView && !isLoading && hasMore) {
-      // Debounce loadMore to prevent multiple calls
-      const timer = setTimeout(() => {
-        loadMorePosts();
-      }, 300);
-      return () => clearTimeout(timer);
+  // Check if post is saved
+  React.useEffect(() => {
+    const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
+    if (savedPosts && savedPosts.includes(post.id)) {
+      setIsSaved(true);
     }
-  }, [inView, isLoading, hasMore, loadMorePosts]);
+  }, [post.id]);
 
-  // Simulate new posts notification
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.7 && !hasNewPosts) {
-        setHasNewPosts(true);
+  const handleLike = useCallback(() => {
+    setIsLiked(!isLiked);
+    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+    
+    toast.success(isLiked ? 'Post unliked' : 'Post liked');
+  }, [isLiked]);
+
+  const handleSave = useCallback(() => {
+    const newIsSaved = !isSaved;
+    setIsSaved(newIsSaved);
+    
+    // Update saved posts in storage
+    const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
+    if (newIsSaved) {
+      savedPosts.push(post.id);
+    } else {
+      const index = savedPosts.indexOf(post.id);
+      if (index !== -1) {
+        savedPosts.splice(index, 1);
       }
-    }, 60000); // Check every minute
-    
-    return () => clearInterval(interval);
-  }, [hasNewPosts]);
-
-  const handleRefresh = () => {
-    window.scrollTo({top: 0, behavior: 'smooth'});
-    setPage(1);
-    fetchPosts(1, activeTab, sortBy);
-    setHasNewPosts(false);
-    toast.success('Feed updated with new posts');
-  };
-
-  const handleTabChange = (newTab: string) => {
-    setActiveTab(newTab);
-    setPage(1);
-    fetchPosts(1, newTab, sortBy);
-  };
-  
-  const handleSortChange = (newSort: string) => {
-    setSortBy(newSort);
-    setPage(1);
-    fetchPosts(1, activeTab, newSort);
-  };
-  
-  const handleCreatePost = (newPost: Post) => {
-    setPosts(prev => [newPost, ...prev]);
-    toast.success('Post created successfully!');
-  };
-
-  const handleApplyFilters = () => {
-    setPage(1);
-    // Reset states before fetching to avoid stale data
-    setPosts([]);
-    setHasMore(true);
-    fetchPosts(1, activeTab, sortBy);
-    toast.success('Filters applied');
-  };
-
-  const handleClearFilters = () => {
-    setFilterCreator('');
-    setFilterDateRange('all');
-    setFilterLocation('');
-    setFilterLiked(false);
-    setFilterSaved(false);
-    setPage(1);
-    fetchPosts(1, activeTab, sortBy);
-    toast.info('Filters cleared');
-  };
-  
-  // Generate mock posts
-  const generateMockPosts = useCallback((pageNum: number, count: number, filter = 'foryou') => {
-    const startIndex = (pageNum - 1) * count;
-    const posts = [];
-    
-    const contents = [
-      'Just finished building an amazing React application! The satisfaction of seeing your code come to life is unmatched. 🚀 #ReactJS #WebDevelopment',
-      'Beautiful sunset from my evening walk. Sometimes you need to step away from the screen and enjoy nature! 🌅',
-      'Excited to share my latest project! Working on a social media platform with some amazing features. Can\'t wait to show you all what we\'ve been building! 💻✨',
-      'Had an incredible day at the tech conference! So many inspiring talks and amazing people. The future of technology looks bright! 🌟',
-      'Weekend coding session complete! There\'s something magical about solving complex problems with elegant code. #CodeLife #Programming',
-      'Just discovered this amazing new library that makes development so much easier. Love how the tech community constantly innovates! 🔧',
-      'Reflecting on the journey so far. Every challenge has been a learning opportunity. Grateful for this amazing community! 🙏',
-      'Late night debugging session turned into a breakthrough moment. Sometimes the best solutions come when you least expect them! 💡',
-      'Coffee and code - the perfect combination for a productive morning! ☕️ What\'s your favorite coding fuel?',
-      'Deployed my first full-stack application today! The feeling of seeing your work live on the internet is incredible! 🌐',
-      'Learning something new every day in this field. Today it was about advanced React patterns and I\'m mind blown! 🤯',
-      'Team collaboration at its finest! Just wrapped up an amazing sprint with the most talented developers. 👥',
-      'Open source contribution feels so rewarding. Giving back to the community that has given me so much! 🌍',
-      'Debugging is like being a detective in a crime movie where you are also the murderer. But when you find the bug... 🕵️‍♂️',
-      'The best part about being a developer? Every day brings new challenges and opportunities to grow! 📈'
-    ];
-
-    // Apply filter logic
-    let filteredContents = [...contents];
-    if (filter === 'photos') {
-      // Only posts with images
-      filteredContents = filteredContents.slice(0, 5);
-    } else if (filter === 'videos') {
-      // Only posts with videos (mock)
-      filteredContents = filteredContents.slice(5, 8);
-    } else if (filter === 'popular') {
-      // Popular posts have more engagement
-      filteredContents = filteredContents.slice(8, 12);
     }
+    storage.set(STORAGE_KEYS.SAVED_POSTS, savedPosts);
+    
+    toast.success(isSaved ? 'Post removed from saved' : 'Post saved');
+  }, [isSaved, post.id]);
 
-    // Generate exactly the requested number of posts
-    for (let i = 0; i < count; i++) {
-      const postIndex = startIndex + i;
-      const contentIndex = postIndex % filteredContents.length;
-      const content = filteredContents[contentIndex];
-      
-      const hasImage = filter === 'photos' ? true : filter === 'videos' ? false : Math.random() > 0.4; // 60% chance of having an image
-      const image = hasImage ? MOCK_IMAGES.POSTS[postIndex % MOCK_IMAGES.POSTS.length] : undefined;
-      
-      // Random reactions for some posts
-      const hasReactions = Math.random() > 0.3;
-      const reactions = hasReactions ? {
-        '👍': Math.floor(Math.random() * 50),
-        '❤️': Math.floor(Math.random() * 30),
-        '😆': Math.floor(Math.random() * 20),
-        '😮': Math.floor(Math.random() * 10),
-        '😢': Math.floor(Math.random() * 5),
-        '😡': Math.floor(Math.random() * 3)
-      } : undefined;
-      
-      // Random feelings for some posts
-      const hasFeelings = Math.random() > 0.8;
-      const feelings = ["😊 happy", "😢 sad", "😍 loved", "😎 cool", "🤔 thoughtful"];
-      const feeling = hasFeelings ? feelings[Math.floor(Math.random() * feelings.length)] : undefined;
-      
-      // Random location for some posts
-      const hasLocation = Math.random() > 0.8;
-      const locations = ["San Francisco, CA", "New York, NY", "Los Angeles, CA", "Seattle, WA", "Chicago, IL"];
-      const location = hasLocation ? locations[Math.floor(Math.random() * locations.length)] : undefined;
-
-      // Random poll for some posts
-      const isPoll = Math.random() > 0.9;
-      const pollOptions = isPoll ? [
-        'What do you think about this new feature?',
-        'Love it!',
-        'It\'s okay',
-        'Not a fan',
-        'No opinion'
-      ] : undefined;
-
-      const pollVotes = isPoll ? {
-        0: Math.floor(Math.random() * 50) + 10,
-        1: Math.floor(Math.random() * 30) + 5,
-        2: Math.floor(Math.random() * 20) + 3,
-        3: Math.floor(Math.random() * 10)
-      } : undefined;
-
-      const authorIndex = postIndex % MOCK_IMAGES.AVATARS.length;
-      posts.push({
-        id: `post_${postIndex + 1}`,
-        user_id: `user_${authorIndex}`,
-        content: `${content} (Post #${postIndex + 1})`,
-        image_url: image,
-        created_at: new Date(Date.now() - (postIndex * 15 * 60 * 1000)).toISOString(),
-        updated_at: new Date(Date.now() - (postIndex * 15 * 60 * 1000)).toISOString(),
-        profiles: {
-          id: `user_${authorIndex}`,
-          full_name: ['Sarah Johnson', 'Mike Chen', 'Emma Wilson', 'David Kim', 'Lisa Wang', 'Alex Rodriguez', 'Jessica Park'][authorIndex],
-          avatar_url: MOCK_IMAGES.AVATARS[authorIndex]
-        },
-        likes_count: Math.floor(Math.random() * 500) + 10,
-        comments_count: Math.floor(Math.random() * 100) + 2,
-        user_has_liked: Math.random() > 0.7,
-        reactions,
-        feeling,
-        location,
-        isPoll,
-        pollOptions,
-        pollVotes
+  const handleShare = useCallback(() => {
+    if (navigator.share) {
+      navigator.share({
+        title: `Post by ${post.profiles?.full_name}`,
+        text: post.content,
+        url: window.location.href,
+      }).catch(err => {
+        console.error('Error sharing:', err);
+        navigator.clipboard.writeText(window.location.href);
+        toast.success('Post link copied to clipboard');
       });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Post link copied to clipboard');
     }
+  }, [post.profiles?.full_name, post.content]);
 
-    return posts;
-  }, []);
+  const handleSubmitComment = useCallback(() => {
+    if (!newComment.trim()) return;
+    
+    const newCommentObj: Comment = {
+      id: Date.now().toString(),
+      content: newComment,
+      created_at: new Date().toISOString(),
+      profiles: {
+        full_name: 'You',
+        avatar_url: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face'
+      }
+    };
+    
+    setComments(prev => [...prev, newCommentObj]);
+    setNewComment('');
+    toast.success('Comment added');
+  }, [newComment]);
 
-  if (!user) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmitComment();
+    }
+  }, [handleSubmitComment]);
+
+  const handleVote = useCallback((optionIndex: number) => {
+    if (userPollVote !== null) {
+      toast.info('You have already voted');
+      return;
+    }
+    
+    setUserPollVote(optionIndex);
+    setPollVotes(prev => ({
+      ...prev,
+      [optionIndex]: (prev[optionIndex] || 0) + 1
+    }));
+    
+    // Save vote to storage
+    const pollVotes = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {});
+    pollVotes[post.id] = optionIndex;
+    storage.set(STORAGE_KEYS.POLL_VOTES, pollVotes);
+    
+    toast.success('Vote recorded');
+  }, [userPollVote, post.id]);
+
+  const getTotalVotes = useCallback((): number => {
+    return Object.values(pollVotes).reduce((sum, count) => sum + count, 0);
+  }, [pollVotes]);
+
+  const getVotePercentage = useCallback((optionIndex: number): number => {
+    const total = getTotalVotes();
+    if (total === 0) return 0;
+    return Math.round((pollVotes[optionIndex] || 0) / total * 100);
+  }, [getTotalVotes, pollVotes]);
+
+  // Handle reactions
+  const handleReaction = useCallback((reaction: string) => {
+    setShowReactionPicker(false);
+    
+    if (currentReaction === reaction) {
+      // Remove reaction
+      setCurrentReaction(null);
+      setIsLiked(false);
+      setLikesCount(prev => prev - 1);
+      toast.success('Reaction removed');
+    } else {
+      // Add or change reaction
+      const wasLiked = !!currentReaction;
+      setCurrentReaction(reaction);
+      setIsLiked(true);
+      
+      if (!wasLiked) {
+        setLikesCount(prev => prev + 1);
+      }
+      
+      toast.success(`Reacted with ${reaction}`);
+    }
+  }, [currentReaction]);
+
+  // Determine if the post content contains a GIF
+  const hasGif = post.content?.includes('[GIF:');
+  let gifUrl = '';
+  let contentWithoutGif = post.content;
+  
+  if (hasGif) {
+    const gifMatch = post.content.match(/\[GIF: (.*?)\]/);
+    if (gifMatch && gifMatch[1]) {
+      gifUrl = gifMatch[1];
+      contentWithoutGif = post.content.replace(/\[GIF: .*?\]/, '').trim();
+    }
   }
 
   return (
-    <div className="w-full px-2 sm:px-4 max-w-xl mx-auto">
-      <div className="space-y-4">
-        {isStoriesLoading ? <StoriesSkeleton /> : <Stories />}
-        
-        <CreatePost onCreatePost={handleCreatePost} />
-        
-        {/* Reels Carousel - Lazy loaded */}
-        <LazyComponent loadingStrategy="viewport">
-          <ReelsCarousel />
-        </LazyComponent>
-        
-        {/* Feed Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <div className="w-full overflow-x-auto scrollbar-thin">
-            <NewsFeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
+    <Card className="card-responsive shadow-sm hover:shadow-md transition-shadow bg-white border-0 shadow-gray-100 mb-4 dark:bg-gray-800 dark:shadow-gray-900 overflow-hidden">
+      <CardContent className="spacing-responsive">
+        {/* Post Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Avatar className="avatar-responsive">
+              <AvatarImage src={post.profiles?.avatar_url} />
+              <AvatarFallback className="bg-blue-500 text-white">
+                {post.profiles?.full_name?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="font-semibold text-gray-900 hover:underline cursor-pointer text-responsive-sm dark:text-gray-100">
+                {post.profiles?.full_name || 'Anonymous User'}
+              </h3>
+              <div className="flex items-center space-x-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {formatTimeAgo(post.created_at)}
+                </p>
+                
+                {/* Show feeling if available */}
+                {post.feeling && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    is feeling {post.feeling}
+                  </p>
+                )}
+                
+                {/* Show location if available */}
+                {post.location && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    at {post.location}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <Button 
-              size="sm" 
-              className="text-xs dark:border-gray-700 dark:text-gray-300"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
+          <Button variant="ghost" size="sm" className="hover:bg-gray-100 touch-target dark:hover:bg-gray-700">
+            <MoreHorizontal className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </Button>
+        </div>
+
+        {/* Post Content */}
+        <div className="mt-3">
+          <p className="text-gray-900 whitespace-pre-wrap leading-relaxed text-responsive-base dark:text-gray-100">
+            {contentWithoutGif}
+          </p>
+        </div>
+
+        {/* GIF Content */}
+        {hasGif && gifUrl && (
+          <div className="mt-3">
+            <img 
+              src={gifUrl} 
+              alt="GIF" 
+              className="rounded-lg max-h-80 mx-auto"
+              loading="lazy"
+            />
+          </div>
+        )}
+
+        {/* Poll */}
+        {post.isPoll && post.pollOptions && (
+          <div className="mt-4">
+            <div className="bg-gray-50 p-3 rounded-lg dark:bg-gray-700">
+              <h4 className="font-medium text-sm mb-3 dark:text-gray-200">{post.pollOptions[0]}</h4>
+              <div className="space-y-2">
+                {post.pollOptions.slice(1).map((option, index) => {
+                  const percentage = getVotePercentage(index);
+                  const isSelected = userPollVote === index;
+                  
+                  return (
+                    <div 
+                      key={index}
+                      className={`relative p-3 rounded-lg cursor-pointer border transition-all ${
+                        isSelected 
+                          ? 'border-blue-500 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/30' 
+                          : 'border-gray-200 hover:border-gray-300 dark:border-gray-600 dark:hover:border-gray-500'
+                      }`}
+                      onClick={() => handleVote(index)}
+                    >
+                      {/* Background progress bar */}
+                      {userPollVote !== null && (
+                        <div 
+                          className="absolute inset-0 bg-blue-100 rounded-lg dark:bg-blue-900/20"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      )}
+                      
+                      {/* Option content */}
+                      <div className="relative flex justify-between items-center">
+                        <span className="text-sm dark:text-gray-200">{option}</span>
+                        {userPollVote !== null && (
+                          <span className="text-sm font-medium dark:text-gray-300">{percentage}%</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {userPollVote !== null && (
+                <p className="text-xs text-gray-500 mt-2 dark:text-gray-400">
+                  {getTotalVotes()} votes
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Post Media */}
+        {post.image_url && (
+          <div className="mt-3 w-full">
+            <OptimizedImage
+              src={post.image_url}
+              alt="Post content"
+              className="w-full h-auto max-h-96 object-cover rounded-md cursor-pointer hover:opacity-95 transition-opacity"
+              loading="lazy"
+              loadingMode="blur"
+            />
+          </div>
+        )}
+
+        {/* Reaction Summary */}
+        <div className="mt-3 pt-3 px-1 flex items-center justify-between text-sm text-gray-500 border-t border-gray-100 dark:border-gray-700 dark:text-gray-400">
+          <div className="flex items-center space-x-1">
+            {likesCount > 0 && (
+              <>
+                <div className="flex -space-x-1">
+                  {currentReaction ? (
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center">
+                      <span className="text-xs">{currentReaction}</span>
+                    </div>
+                  ) : (
+                    <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                      <ThumbsUp className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                  
+                  {post.reactions && Object.keys(post.reactions).length > 1 && (
+                    <div className="flex -ml-1">
+                      {Object.keys(post.reactions).slice(0, 2).map((reaction, i) => (
+                        reaction !== (currentReaction || '👍') && (
+                          <div key={i} className="w-5 h-5 flex items-center justify-center">
+                            <span className="text-xs">{reaction}</span>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <span className="hover:underline cursor-pointer text-responsive-sm">
+                  {likesCount} {likesCount === 1 ? 'reaction' : 'reactions'}
+                </span>
+              </>
+            )}
+          </div>
+          <div className="flex space-x-4 text-responsive-sm">
+            <span className="hover:underline cursor-pointer" onClick={() => setShowComments(!showComments)}>
+              {post.comments_count || comments.length || 0} {post.comments_count === 1 || comments.length === 1 ? 'comment' : 'comments'}
+            </span>
+            <span>0 shares</span>
           </div>
         </div>
-        
-        {/* Advanced Filters */}
-        {showFilters && (
-          <NewsFeedFilters
-            creator={filterCreator}
-            setCreator={setFilterCreator}
-            dateRange={filterDateRange}
-            setDateRange={setFilterDateRange}
-            location={filterLocation}
-            setLocation={setFilterLocation}
-            liked={filterLiked}
-            setLiked={setFilterLiked}
-            saved={filterSaved}
-            setSaved={setFilterSaved}
-            onApply={handleApplyFilters}
-            onClear={handleClearFilters}
-          />
-        )}
-        
-        {/* New posts notification */}
-        <AnimatePresence>
-          {hasNewPosts && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              exit={{ opacity: 0, y: -20 }} 
-              className="sticky top-16 z-10 flex justify-center"
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between mt-1 relative">
+          <div className="flex items-center space-x-1">
+            <Button
+              ref={likeButtonRef}
+              variant="ghost"
+              className={`flex items-center space-x-2 button-responsive rounded-lg transition-colors ${
+                isLiked 
+                  ? 'text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30' 
+                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+              }`}
+              onClick={handleLike}
+              onMouseEnter={() => setShowReactionPicker(true)}
+              onMouseLeave={() => setTimeout(() => setShowReactionPicker(false), 500)}
             >
-              <Button 
-                onClick={handleRefresh}
-                variant="default" 
-                size="sm" 
-                className="inline-flex items-center space-x-2"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                New posts available
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        {/* Main content */}
-        <div className="space-y-4">
-          {isLoading && posts.length === 0 ? (
-            <NewsFeedSkeleton />
-          ) : error ? (
-            <div className="bg-white rounded-lg shadow-sm card-responsive text-center dark:bg-gray-800">
-              <div className="p-6">
-                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-800 mb-2 dark:text-gray-200">Unable to load posts</h3>
-                <p className="text-gray-600 mb-4 dark:text-gray-400">There was an error loading the posts. Please try again.</p>
+              {currentReaction ? (
+                <span className="text-xl">{currentReaction}</span>
+              ) : (
+                <ThumbsUp className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+              )}
+              <span className="font-medium text-responsive-sm">
+                {currentReaction ? 'Reacted' : 'Like'}
+              </span>
+            </Button>
+
+            {showReactionPicker && (
+              <ReactionPicker 
+                onSelect={handleReaction} 
+                position="top"
+                className="z-10"
+              />
+            )}
+
+            <Button
+              variant="ghost"
+              className="flex items-center space-x-2 button-responsive rounded-lg text-gray-600 hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-800"
+              onClick={() => setShowComments(!showComments)}
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span className="font-medium text-responsive-sm">Comment</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              className="flex items-center space-x-2 button-responsive rounded-lg text-gray-600 hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-800"
+              onClick={handleShare}
+            >
+              <Share className="w-5 h-5" />
+              <span className="font-medium text-responsive-sm">Share</span>
+            </Button>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSave}
+            className={`${isSaved ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-600 dark:text-gray-300'} hover:bg-gray-100 dark:hover:bg-gray-800`}
+          >
+            <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
+          </Button>
+        </div>
+
+        {/* Comments Section */}
+        {showComments && (
+          <div className="mt-3 pt-3 border-t border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
+            <div className="max-h-64 overflow-y-auto scrollbar-thin px-3 space-y-3">
+              {comments.length > 0 ? (
+                comments.map((comment) => (
+                  <div key={comment.id} className="flex space-x-3">
+                    <Avatar className="w-8 h-8 flex-shrink-0">
+                      <AvatarImage src={comment.profiles?.avatar_url} />
+                      <AvatarFallback className="bg-gray-400 text-white text-xs dark:bg-gray-600">
+                        {comment.profiles?.full_name?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="bg-white rounded-lg px-3 py-2 shadow-sm dark:bg-gray-800">
+                        <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                          {comment.profiles?.full_name || 'Anonymous User'}
+                        </p>
+                        <p className="text-gray-800 break-words text-responsive-sm dark:text-gray-200">
+                          {comment.content}
+                        </p>
+                      </div>
+                      <div className="flex items-center mt-1 ml-1 space-x-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-xs text-gray-400 mt-1 dark:text-gray-500">{memoizedFormatTimeAgo(comment.created_at)}</span>
+                        <button className="font-semibold hover:underline">Like</button>
+                        <button className="font-semibold hover:underline">Reply</button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 text-responsive-sm py-4 dark:text-gray-400">
+                  No comments yet. Be the first to comment!
+                </div>
+              )}
+            </div>
+            
+            {/* Add Comment - Optimized for mobile */}
+            <div className="mt-3 pt-3 border-t border-gray-200 px-3 pb-3 flex space-x-2 dark:border-gray-700">
+              <Avatar className="w-8 h-8 flex-shrink-0">
+                <AvatarImage src="https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?w=400&h=400&fit=crop&crop=face" />
+                <AvatarFallback className="bg-blue-500 text-white text-xs">U</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 flex space-x-2">
+                <Input
+                  placeholder="Write a comment..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="rounded-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm h-9 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                />
                 <Button 
-                  onClick={handleRefresh} 
-                  className="inline-flex items-center space-x-2 dark:border-gray-700 dark:text-gray-300"
+                  onClick={handleSubmitComment} 
+                  size="sm"
+                  disabled={!newComment.trim()}
+                  className="rounded-full px-3 h-9 min-w-[60px]"
                 >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  <span>Try Again</span>
+                  Post
                 </Button>
               </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Posts List */}
-              <div className="space-y-4">
-                <AnimatePresence initial={false}>
-                  {posts.map((post, index) => (
-                    <motion.div
-                      key={`${post.id}-${index}`}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="w-full"
-                    >
-                      <PostCard post={post} />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-              
-              {/* Loading indicator */}
-              {isLoading && (
-                <div className="flex justify-center items-center py-4">
-                  <LoadingSpinner size="md" />
-                </div>
-              )}
-              
-              {/* Empty state for filtered results */}
-              {!isLoading && posts.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="bg-white rounded-lg shadow-sm card-responsive text-center p-6 dark:bg-gray-800"
-                >
-                  <div className="text-gray-500 dark:text-gray-400">
-                    <Filter className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 dark:text-white">No posts found</h3>
-                    <p className="mb-4">No posts match your current filters.</p>
-                    <Button 
-                      onClick={handleClearFilters} 
-                      variant="outline"
-                      className="dark:border-gray-700 dark:text-gray-300"
-                    >
-                      Clear Filters
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-              
-              {/* End of feed indicator */}
-              {!isLoading && !hasMore && posts.length > 0 && (
-                <div className="bg-white rounded-lg shadow-sm card-responsive text-center border-gray-100 bg-gray-50 p-4 dark:bg-gray-800 dark:border-gray-700">
-                  <div className="text-gray-500 dark:text-gray-400 px-2 py-3">
-                    <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm font-medium">You're all caught up!</p>
-                    <p className="text-xs mt-1 px-2">Check back later for new posts from your friends.</p>
-                  </div>
-                </div>
-              )}
-              
-              {/* Intersection observer target */}
-              <div ref={ref} className="h-20 -mt-10" />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
-};
+}, (prevProps, nextProps) => {
+  // Implement shouldComponentUpdate logic to prevent unnecessary re-renders
+  return prevProps.post.id === nextProps.post.id && 
+         prevProps.post.likes_count === nextProps.post.likes_count &&
+         prevProps.post.comments_count === nextProps.post.comments_count &&
+         prevProps.post.user_has_liked === nextProps.post.user_has_liked;
+});
 
-export default NewsFeed;
+PostCard.displayName = 'PostCard';
+
+export default PostCard;
