@@ -367,7 +367,6 @@ const PostCard = memo<PostCardProps>(({ post }) => {
                   )}
                   
                   {post.reactions && Object.keys(post.reactions).length > 1 && (
-                  {post.reactions && Object.keys(post.reactions).length > 1 && (
                     <div className="flex -ml-1">
                       {Object.keys(post.reactions).slice(0, 2).map((reaction, i) => (
                         reaction !== (currentReaction || '👍') && (
