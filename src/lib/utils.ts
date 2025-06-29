@@ -62,10 +62,11 @@ export const formatTimeAgo = (date: string | Date): string => {
   const past = new Date(date);
   const diffMs = now.getTime() - past.getTime();
   const diffInSeconds = Math.floor(diffMs / 1000);
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
   // Check if browser supports RelativeTimeFormat
   if (typeof Intl !== 'undefined' && Intl.RelativeTimeFormat) {
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    
     if (diffInSeconds < 60) return diffInSeconds <= 5 ? 'now' : rtf.format(-Math.floor(diffInSeconds), 'second');
     if (diffInSeconds < 3600) return rtf.format(-Math.floor(diffInSeconds / 60), 'minute');
     if (diffInSeconds < 86400) return rtf.format(-Math.floor(diffInSeconds / 3600), 'hour');

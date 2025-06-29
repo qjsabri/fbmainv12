@@ -106,9 +106,9 @@ const OptimizedImage = React.forwardRef<HTMLImageElement, ImageProps>(
             "w-full h-full transition-opacity duration-300",
             isLoading ? "opacity-0" : "opacity-100"
           )}
-          loading="lazy"
+          loading={lazy ? "lazy" : undefined}
           onLoad={handleLoad}
-          onError={() => handleError()}
+          onError={handleError}
           {...props}
         />
         

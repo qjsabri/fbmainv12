@@ -27,53 +27,6 @@ export const createImageObserver = (callback: (entry: IntersectionObserverEntry)
   return null;
 };
 
-// Memory usage monitor
-export const monitorMemoryUsage = () => {
-  if (typeof performance !== 'undefined' && 'memory' in performance) {
-    const memory = (performance as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
-    return {
-      used: Math.round(memory.usedJSHeapSize / 1048576), // MB
-      total: Math.round(memory.totalJSHeapSize / 1048576), // MB
-      limit: Math.round(memory.jsHeapSizeLimit / 1048576) // MB
-    };
-  }
-  return null;
-};
-
-// Performance metrics
-export const measurePerformance = (name: string, fn: () => void) => {
-  const start = performance.now();
-  fn();
-  const end = performance.now();
-  console.log(`${name} took ${end - start} milliseconds`);
-};
-
-// Bundle analyzer for development
-export const analyzeBundleChunks = () => {
-  if (process.env.NODE_ENV === 'development') {
-    try {
-      const scripts = Array.from(document.querySelectorAll('script[src]'));
-      const chunks = scripts
-        .map(script => (script as HTMLScriptElement).src)
-        .filter(src => src.includes('localhost'))
-        .map(src => {
-          const filename = src.split('/').pop() || '';
-          return {
-            name: filename,
-            url: src
-          };
-        });
-    
-      console.table(chunks);
-      return chunks;
-    } catch (err) {
-      console.error("Error analyzing bundle chunks:", err);
-      return [];
-    }
-  }
-  return [];
-};
-
 // Resource hints
 export const addResourceHints = () => {
   // DNS prefetch for external domains
@@ -160,9 +113,6 @@ export const loadCriticalResources = () => {
   // Prefetch important images
   ['/favicon.ico'].forEach(url => preloadResource(url, 'image'));
   
-  // Start measuring web vitals
-  measureWebVitals();
-  
   // Mark app ready
   if (window.performance?.mark) {
     performance.mark('app_ready');
@@ -177,17 +127,4 @@ export const loadCriticalResources = () => {
       console.warn('Error measuring performance:', err);
     }
   }
-};
-
-// Export all utilities
-export default {
-  preloadResource,
-  createImageObserver,
-  debounce,
-  monitorMemoryUsage,
-  measurePerformance,
-  analyzeBundleChunks,
-  addResourceHints,
-  measureWebVitals,
-  loadCriticalResources
 };

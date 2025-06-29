@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PostCard from '@/components/posts/PostCard';
 import Stories from '@/components/Stories';
 import CreatePost from '@/components/posts/CreatePost';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MOCK_IMAGES } from '@/lib/constants';
 import { toast } from 'sonner';
+import StoriesSkeleton from '@/components/StoriesSkeleton';
+import NewsFeedSkeleton from '@/components/NewsFeedSkeleton';
 
 interface Post {
   id: string;
@@ -25,40 +26,58 @@ interface Post {
 }
 
 const Home = () => {
-  const [posts, setPosts] = useState<Post[]>([
-    {
-      id: '1',
-      user_id: 'user-1',
-      content: 'Just shared a new photo from my recent trip! Check it out 📸',
-      image_url: MOCK_IMAGES.POSTS[0],
-      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      profiles: {
-        id: 'user-1',
-        full_name: 'Sarah Johnson',
-        avatar_url: MOCK_IMAGES.AVATARS[0]
-      },
-      likes_count: 42,
-      comments_count: 12,
-      user_has_liked: false
-    },
-    {
-      id: '2',
-      user_id: 'user-2',
-      content: 'Had an amazing time at the tech conference today! So many great speakers and insights.',
-      image_url: MOCK_IMAGES.POSTS[1],
-      created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      profiles: {
-        id: 'user-2',
-        full_name: 'Mike Chen',
-        avatar_url: MOCK_IMAGES.AVATARS[1]
-      },
-      likes_count: 28,
-      comments_count: 8,
-      user_has_liked: true
-    }
-  ]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading posts from an API
+    const loadPosts = async () => {
+      setIsLoading(true);
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockPosts: Post[] = [
+        {
+          id: '1',
+          user_id: 'user-1',
+          content: 'Just shared a new photo from my recent trip! Check it out 📸',
+          image_url: MOCK_IMAGES.POSTS[0],
+          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          profiles: {
+            id: 'user-1',
+            full_name: 'Sarah Johnson',
+            avatar_url: MOCK_IMAGES.AVATARS[0]
+          },
+          likes_count: 42,
+          comments_count: 12,
+          user_has_liked: false
+        },
+        {
+          id: '2',
+          user_id: 'user-2',
+          content: 'Had an amazing time at the tech conference today! So many great speakers and insights.',
+          image_url: MOCK_IMAGES.POSTS[1],
+          created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+          profiles: {
+            id: 'user-2',
+            full_name: 'Mike Chen',
+            avatar_url: MOCK_IMAGES.AVATARS[1]
+          },
+          likes_count: 28,
+          comments_count: 8,
+          user_has_liked: true
+        }
+      ];
+      
+      setPosts(mockPosts);
+      setIsLoading(false);
+    };
+    
+    loadPosts();
+  }, []);
 
   const handleCreatePost = (newPost: any) => {
     const post: Post = {
@@ -85,13 +104,17 @@ const Home = () => {
   return (
     <div className="w-full max-w-2xl mx-auto pt-4">
       <div className="space-y-4">
-        <Stories />
+        {isLoading ? <StoriesSkeleton /> : <Stories />}
+        
         <Card>
           <CardContent className="p-4">
             <CreatePost onCreatePost={handleCreatePost} />
           </CardContent>
         </Card>
-        {posts.length > 0 ? (
+        
+        {isLoading ? (
+          <NewsFeedSkeleton />
+        ) : posts.length > 0 ? (
           <div className="space-y-4">
             {posts.map(post => (
               <PostCard key={post.id} post={post} />
