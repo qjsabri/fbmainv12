@@ -316,7 +316,7 @@ const CreatePost = memo<CreatePostProps>(({ onCreatePost }) => {
         if (image.startsWith('blob:')) {
           try {
             URL.revokeObjectURL(image);
-          } catch (_error) {
+          } catch (error) {
             console.error('Error revoking object URL:', error);
           }
         }
@@ -720,6 +720,6 @@ const CreatePost = memo<CreatePostProps>(({ onCreatePost }) => {
       </Dialog>
     </>
   );
-};
+});
 
 export default CreatePost;
