@@ -141,15 +141,15 @@ const EventsWidget = () => {
                 />
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-sm text-gray-900 truncate dark:text-white">{event.title}</h4>
-                  <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1 dark:text-gray-400">
                     <Clock className="w-3 h-3" />
                     <span>{event.date} at {event.time}</span>
                   </div>
-                  <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1 dark:text-gray-400">
                     <MapPin className="w-3 h-3" />
                     <span className="truncate">{event.location}</span>
                   </div>
-                  <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1 dark:text-gray-400">
                     <Users className="w-3 h-3" />
                     <span>{event.attendees} going</span>
                   </div>
