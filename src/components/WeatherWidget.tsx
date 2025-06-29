@@ -3,7 +3,6 @@ import { Cloud, Sun, CloudRain, CloudSnow, CloudLightning, Wind, Thermometer } f
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { useCallback } from 'react';
 
 interface WeatherData {
   location: string;

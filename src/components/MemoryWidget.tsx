@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Camera, Calendar, Users } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MOCK_IMAGES } from '@/lib/constants';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { format, subYears, isSameDay } from 'date-fns';
 
@@ -86,7 +85,6 @@ const MemoryWidget = () => {
 
   const handleViewMemory = (memoryId: string) => {
     navigate('/memories');
-    toast.info(`Viewing memory: ${memories.find(m => m.id === memoryId)?.title || 'Memory'}`);
   };
 
   const handleViewAllMemories = () => {
@@ -201,7 +199,5 @@ const MemoryWidget = () => {
     </Card>
   );
 };
-
-
 
 export default MemoryWidget;

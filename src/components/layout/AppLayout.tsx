@@ -10,6 +10,9 @@ import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { ROUTES } from '@/lib/constants';
 import { Toaster } from '@/components/ui/sonner';
 import LazyComponent from '@/components/ui/LazyComponent';
+import QuickActions from '@/components/QuickActions';
+import ActivityFeed from '@/components/ActivityFeed';
+import FundraiserWidget from '@/components/FundraiserWidget';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -57,6 +60,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           
           {/* Main Content */}
           <main className={`main-content ${contentClasses}`}>
+            {/* Add QuickActions and ActivityFeed at the top of the main content on home page for desktop */}
+            {location.pathname === ROUTES.HOME && !isMobile && !isTablet && (
+              <div className="max-w-2xl mx-auto mb-4 space-y-4">
+                <QuickActions />
+                <FundraiserWidget />
+                <ActivityFeed />
+              </div>
+            )}
             {children}
           </main>
           

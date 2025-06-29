@@ -28,58 +28,64 @@ interface MarketplaceItem {
 
 const MarketplaceWidget = () => {
   const navigate = useNavigate();
-  const [items] = useState<MarketplaceItem[]>([
-    {
-      id: '1',
-      title: 'MacBook Pro 13" M2',
-      price: '$1,200',
-      image: MOCK_IMAGES.POSTS[0],
-      location: 'San Francisco, CA',
-      category: 'Electronics',
-      isNew: true,
-      description: 'Excellent condition MacBook Pro with M2 chip. Barely used, comes with original charger.',
-      seller: {
-        name: 'Sarah Johnson',
-        avatar: MOCK_IMAGES.AVATARS[0]
-      },
-      condition: 'Like New'
-    },
-    {
-      id: '2',
-      title: 'Vintage Leather Sofa',
-      price: '$800',
-      image: getSafeImage('POSTS', 2),
-      location: 'Oakland, CA',
-      category: 'Furniture',
-      isNew: false,
-      description: 'Beautiful vintage leather sofa in good condition. Perfect for living room.',
-      seller: {
-        name: 'Mike Chen',
-        avatar: MOCK_IMAGES.AVATARS[1]
-      },
-      condition: 'Good'
-    },
-    {
-      id: '3',
-      title: 'Mountain Bike - Like New',
-      price: '$350',
-      image: getSafeImage('POSTS', 3),
-      location: 'San Jose, CA',
-      category: 'Sports',
-      isNew: true,
-      description: 'Mountain bike in excellent condition. Only used a few times.',
-      seller: {
-        name: 'Emma Wilson',
-        avatar: getSafeImage('AVATARS', 2)
-      },
-      condition: 'Like New'
-    }
-  ]);
-
+  const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<MarketplaceItem | null>(null);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [messageText, setMessageText] = useState('');
+
+  useEffect(() => {
+    // Initialize with mock items
+    const mockItems: MarketplaceItem[] = [
+      {
+        id: '1',
+        title: 'MacBook Pro 13" M2',
+        price: '$1,200',
+        image: MOCK_IMAGES.POSTS[0],
+        location: 'San Francisco, CA',
+        category: 'Electronics',
+        isNew: true,
+        description: 'Excellent condition MacBook Pro with M2 chip. Barely used, comes with original charger.',
+        seller: {
+          name: 'Sarah Johnson',
+          avatar: MOCK_IMAGES.AVATARS[0]
+        },
+        condition: 'Like New'
+      },
+      {
+        id: '2',
+        title: 'Vintage Leather Sofa',
+        price: '$800',
+        image: getSafeImage('POSTS', 2),
+        location: 'Oakland, CA',
+        category: 'Furniture',
+        isNew: false,
+        description: 'Beautiful vintage leather sofa in good condition. Perfect for living room.',
+        seller: {
+          name: 'Mike Chen',
+          avatar: MOCK_IMAGES.AVATARS[1]
+        },
+        condition: 'Good'
+      },
+      {
+        id: '3',
+        title: 'Mountain Bike - Like New',
+        price: '$350',
+        image: getSafeImage('POSTS', 3),
+        location: 'San Jose, CA',
+        category: 'Sports',
+        isNew: true,
+        description: 'Mountain bike in excellent condition. Only used a few times.',
+        seller: {
+          name: 'Emma Wilson',
+          avatar: getSafeImage('AVATARS', 2)
+        },
+        condition: 'Like New'
+      }
+    ];
+    
+    setItems(mockItems);
+  }, []);
 
   const handleViewItem = (item: MarketplaceItem) => {
     setSelectedItem(item);
@@ -167,82 +173,78 @@ const MarketplaceWidget = () => {
 
       {/* Item Detail Dialog */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{selectedItem?.title || 'Marketplace Item'}</DialogTitle>
           </DialogHeader>
           
           {selectedItem && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <img 
+                src={selectedItem.image} 
+                alt={selectedItem.title} 
+                className="w-full h-auto rounded-lg object-cover"
+              />
+              
               <div>
-                <img 
-                  src={selectedItem.image} 
-                  alt={selectedItem.title} 
-                  className="w-full h-auto rounded-lg object-cover"
-                />
+                <p className="text-xl font-bold text-blue-600">{selectedItem.price}</p>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xl font-bold text-blue-600">{selectedItem.price}</p>
-                </div>
-                
-                <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-                  <MapPin className="w-4 h-4" />
-                  <span>{selectedItem.location}</span>
-                </div>
-                
-                <p className="text-gray-700 whitespace-pre-line dark:text-gray-300">{selectedItem.description}</p>
-                
-                <div className="pt-4 border-t dark:border-gray-700">
-                  <h3 className="font-semibold mb-2 dark:text-white">Seller Information</h3>
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={selectedItem.seller.avatar} />
-                      <AvatarFallback>{selectedItem.seller.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium dark:text-white">{selectedItem.seller.name}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Member since 2022</p>
-                    </div>
+              
+              <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                <MapPin className="w-4 h-4" />
+                <span>{selectedItem.location}</span>
+              </div>
+              
+              <p className="text-gray-700 whitespace-pre-line dark:text-gray-300">{selectedItem.description}</p>
+              
+              <div className="pt-4 border-t dark:border-gray-700">
+                <h3 className="font-semibold mb-2 dark:text-white">Seller Information</h3>
+                <div className="flex items-center space-x-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={selectedItem.seller.avatar} />
+                    <AvatarFallback>{selectedItem.seller.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium dark:text-white">{selectedItem.seller.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Member since 2022</p>
                   </div>
                 </div>
-                
-                <div className="pt-4 border-t dark:border-gray-700">
-                  <h3 className="font-semibold mb-2 dark:text-white">Item Details</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400">Category</p>
-                      <p className="dark:text-white">{selectedItem.category}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400">Condition</p>
-                      <p className="dark:text-white">{selectedItem.condition}</p>
-                    </div>
+              </div>
+              
+              <div className="pt-4 border-t dark:border-gray-700">
+                <h3 className="font-semibold mb-2 dark:text-white">Item Details</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Category</p>
+                    <p className="dark:text-white">{selectedItem.category}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Condition</p>
+                    <p className="dark:text-white">{selectedItem.condition}</p>
                   </div>
                 </div>
-                
-                <div className="flex space-x-3 pt-4">
-                  <Button 
-                    className="flex-1"
-                    onClick={() => {
-                      setIsItemDialogOpen(false);
-                      setIsMessageDialogOpen(true);
-                    }}
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Message Seller
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      navigate('/marketplace');
-                      setIsItemDialogOpen(false);
-                    }}
-                    className="dark:border-gray-600 dark:text-gray-200"
-                  >
-                    View in Marketplace
-                  </Button>
-                </div>
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                <Button 
+                  className="flex-1"
+                  onClick={() => {
+                    setIsItemDialogOpen(false);
+                    setIsMessageDialogOpen(true);
+                  }}
+                >
+                  Message Seller
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    navigate('/marketplace');
+                    setIsItemDialogOpen(false);
+                  }}
+                  className="dark:border-gray-600 dark:text-gray-200"
+                >
+                  View in Marketplace
+                </Button>
               </div>
             </div>
           )}

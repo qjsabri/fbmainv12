@@ -71,7 +71,7 @@ const TrendingTopics = () => {
           {topics.map((topic, index) => (
             <div 
               key={topic.id} 
-              className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+              className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg cursor-pointer dark:hover:bg-gray-700"
               onClick={() => handleTopicClick(topic)}
             >
               <div className="flex items-center space-x-2 flex-1 min-w-0">
@@ -80,8 +80,8 @@ const TrendingTopics = () => {
                   <Hash className="w-3 h-3 text-blue-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-gray-900 truncate">{topic.hashtag}</p>
-                  <div className="flex items-center space-x-2 text-xs text-gray-500">
+                  <p className="font-medium text-sm text-gray-900 truncate dark:text-white">{topic.hashtag}</p>
+                  <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
                     <span>{formatNumber(topic.posts)} posts</span>
                     {topic.location && (
                       <>
@@ -103,8 +103,8 @@ const TrendingTopics = () => {
             </div>
           ))}
         </div>
-        <div className="mt-3 pt-2 border-t">
-          <Button variant="ghost" size="sm" className="w-full text-blue-600">
+        <div className="mt-3 pt-2 border-t dark:border-gray-700">
+          <Button variant="ghost" size="sm" className="w-full text-blue-600 dark:text-blue-400">
             See all trending
           </Button>
         </div>

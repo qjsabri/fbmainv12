@@ -10,15 +10,14 @@ import { storage } from '@/lib/storage';
 
 interface SavedItem {
   id: string;
-  originalId?: string;
   type: 'post' | 'video' | 'article' | 'event' | 'marketplace' | 'photo' | 'link' | 'group';
   title: string;
-  image?: string;
+  description: string;
+  image: string;
   savedDate: string;
   collection: string;
   url?: string;
   isFavorite?: boolean;
-  description?: string;
 }
 
 const SavedItemsWidget = () => {
@@ -31,76 +30,40 @@ const SavedItemsWidget = () => {
     const loadSavedItems = () => {
       setIsLoading(true);
       
-      // Get saved posts
-      const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
-      
       // Get saved items from storage
-      const savedItems = storage.get<SavedItem[]>(STORAGE_KEYS.SAVED_ITEMS, []);
+      const savedItems = storage.get<SavedItem[]>('user_saved_items');
       
-      // Combine saved posts with saved items
-      let allItems: SavedItem[] = [...(savedItems || [])];
-      
-      // Add saved posts if they're not already in the saved items
-      if (savedPosts && savedPosts.length > 0) {
-        const existingPostIds = new Set(allItems.filter(item => item.type === 'post').map(item => item.originalId));
-        
-        // Add posts that aren't already in the saved items
-        savedPosts.forEach(postId => {
-          if (!existingPostIds.has(postId)) {
-            allItems.push({
-              id: `post-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-              originalId: postId,
-              type: 'post',
-              title: `Saved Post #${postId}`,
-              savedDate: new Date().toISOString(),
-              collection: 'posts',
-              description: 'A post you saved for later',
-              image: `https://images.pexels.com/photos/${1000000 + parseInt(postId.replace(/\D/g, '') || '0') % 10000}/pexels-photo-${1000000 + parseInt(postId.replace(/\D/g, '') || '0') % 10000}.jpeg?w=800&h=600&fit=crop`
-            });
-          }
-        });
-      }
-      
-      // If still no items, create mock data
-      if (allItems.length === 0) {
-        allItems = [
+      if (savedItems && savedItems.length > 0) {
+        setItems(savedItems);
+      } else {
+        // Default mock items if none in storage
+        const mockItems: SavedItem[] = [
           {
             id: '1',
-            originalId: 'post_1',
             type: 'post',
-            title: 'Amazing React Development Tips',
-            image: MOCK_IMAGES.POSTS[0],
+            title: 'Support Local Wildlife Conservation',
+            description: 'Help us protect endangered species in our local ecosystem by supporting habitat restoration and conservation efforts.',
+            image: getSafeImage('POSTS', 2),
             savedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            collection: 'Tech Tips'
+            collection: 'Environment',
+            isFavorite: true
           },
           {
             id: '2',
-            type: 'video',
-            title: 'How to Build a Social Media App',
-            image: MOCK_IMAGES.POSTS[1],
-            savedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-            collection: 'Videos'
-          },
-          {
-            id: '3',
             type: 'article',
-            title: 'The Future of Web Development',
-            savedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            collection: 'Articles',
-            url: 'https://example.com/article'
+            title: 'Children\'s Hospital Medical Equipment',
+            description: 'Help us purchase vital medical equipment for our children\'s hospital to improve care for our youngest patients.',
+            image: getSafeImage('POSTS', 3),
+            savedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            collection: 'Health',
+            isFavorite: false
           }
         ];
         
-        // Save mock data to storage
-        storage.set(STORAGE_KEYS.SAVED_ITEMS, allItems);
+        setItems(mockItems);
+        storage.set('user_saved_items', mockItems);
       }
       
-      // Sort by date (newest first) and take only the most recent items (up to 3)
-      const sortedItems = allItems.sort((a, b) => 
-        new Date(b.savedDate).getTime() - new Date(a.savedDate).getTime()
-      ).slice(0, 3);
-      
-      setItems(sortedItems);
       setIsLoading(false);
     };
     
@@ -110,17 +73,12 @@ const SavedItemsWidget = () => {
   const handleViewItem = (itemId: string) => {
     const item = items.find(i => i.id === itemId);
     if (item) {
-      if (item.type === 'post' && item.originalId) {
-        // Navigate to the post in the feed
-        navigate(`/?post=${item.originalId}`);
-        return;
-      }
-      
       if (item.url) {
         window.open(item.url, '_blank');
       } else {
-        toast.info(`Viewing saved item: ${item.title}`);
+        navigate(`/${item.type}s/${itemId}`);
       }
+      toast.info(`Viewing saved item: ${item.title}`);
     }
   };
 
@@ -129,7 +87,7 @@ const SavedItemsWidget = () => {
   };
 
   const getTypeColor = (type: string): string => {
-    switch (type) {
+    switch(type) {
       case 'post': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       case 'video': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
       case 'event': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
@@ -150,17 +108,10 @@ const SavedItemsWidget = () => {
             <span>Saved Items</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-2">
-          <div className="animate-pulse space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="flex space-x-3">
-                <div className="w-16 h-16 bg-gray-200 rounded-lg dark:bg-gray-700"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 dark:bg-gray-700"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2 dark:bg-gray-700"></div>
-                </div>
-              </div>
-            ))}
+        <CardContent className="p-4 flex justify-center">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-10 w-24 bg-gray-200 rounded mb-2 dark:bg-gray-700"></div>
+            <div className="h-6 w-32 bg-gray-200 rounded dark:bg-gray-700"></div>
           </div>
         </CardContent>
       </Card>
@@ -195,17 +146,11 @@ const SavedItemsWidget = () => {
               className="flex space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors dark:hover:bg-gray-700"
               onClick={() => handleViewItem(item.id)}
             >
-              {item.image ? (
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-16 h-16 rounded-lg object-cover"
-                />
-              ) : (
-                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center dark:bg-gray-700">
-                  <Bookmark className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-                </div>
-              )}
+              <img
+                src={item.image}
+                alt={item.title}
+                className="w-16 h-16 rounded-lg object-cover"
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
                   <Badge className={`text-xs ${getTypeColor(item.type)}`}>

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Plus } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { MOCK_IMAGES, getSafeImage } from '@/lib/constants';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { storage } from '@/lib/storage';
 
 interface Event {
@@ -102,13 +102,11 @@ const EventsWidget = () => {
         ? { ...event, isGoing: action === 'going' ? !event.isGoing : event.isGoing }
         : event
     ));
+    
+    toast.success(`Event status updated`);
   };
 
   const handleViewAll = () => {
-    navigate('/events');
-  };
-
-  const handleCreateEvent = () => {
     navigate('/events');
   };
 
@@ -123,10 +121,10 @@ const EventsWidget = () => {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={handleCreateEvent}
-            className="h-8 w-8 p-0"
+            onClick={handleViewAll}
+            className="text-blue-600 text-xs dark:text-blue-400"
           >
-            <Plus className="w-4 h-4" />
+            See All
           </Button>
         </CardTitle>
       </CardHeader>

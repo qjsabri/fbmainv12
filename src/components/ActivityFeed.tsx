@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Heart, MessageCircle, UserPlus, Calendar, Share, Eye } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 import { MOCK_IMAGES, getSafeImage } from '@/lib/constants';
+import { toast } from 'sonner';
 
 interface Activity {
   id: string;
@@ -74,8 +76,12 @@ const ActivityFeed = () => {
     }
   };
 
+  const handleActivityClick = (activity: Activity) => {
+    toast.info(`Viewing activity: ${activity.action} ${activity.target || ''}`);
+  };
+
   return (
-    <Card>
+    <Card className="hidden lg:block">
       <CardHeader className="p-3">
         <CardTitle className="text-base font-semibold flex items-center">
           <Eye className="w-5 h-5 mr-2" />
@@ -85,25 +91,29 @@ const ActivityFeed = () => {
       <CardContent className="p-2">
         <div className="space-y-2">
           {activities.map((activity) => (
-            <div key={activity.id} className="flex items-start space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+            <div
+              key={activity.id}
+              className="flex items-start space-x-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer dark:hover:bg-gray-800"
+              onClick={() => handleActivityClick(activity)}
+            >
               <div className="relative">
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={activity.user.avatar} />
                   <AvatarFallback>{activity.user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+                <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 dark:bg-gray-800">
                   <ActivityIcon type={activity.type} />
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-900">
+                <p className="text-sm text-gray-900 dark:text-gray-100">
                   <span className="font-medium">{activity.user.name}</span>{' '}
                   {activity.action}
                   {activity.target && (
-                    <span className="text-blue-600"> "{activity.target}"</span>
+                    <span className="text-blue-600 dark:text-blue-400"> "{activity.target}"</span>
                   )}
                 </p>
-                <p className="text-xs text-gray-500">{activity.timestamp}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{activity.timestamp}</p>
               </div>
             </div>
           ))}
