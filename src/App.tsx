@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -9,7 +9,6 @@ import { ROUTES } from "@/lib/constants";
 import { Toaster } from "@/components/ui/sonner";
 import ThemeProvider from "@/components/ThemeProvider";
 import { loadCriticalResources } from "@/utils/performance";
-import React, { useEffect } from "react";
 
 // Custom suspense fallback
 const SuspenseFallback = () => (
