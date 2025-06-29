@@ -4,12 +4,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { formatNumber, formatTimeAgo } from '@/lib/utils';
+import WatchTogether from '@/components/WatchTogether';
 
 interface Video {
   id: string;
@@ -124,10 +125,13 @@ const Watch = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('relevance');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isWatchTogetherOpen, setIsWatchTogetherOpen] = useState(false);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
 
   const categories = ['All', 'Technology', 'Nature', 'Food', 'Music', 'Gaming', 'Sports', 'Education', 'Health'];
 
   const handleVideoClick = (videoId: string) => {
+    setSelectedVideoId(videoId);
     navigate(`/watch/${videoId}`);
   };
 
@@ -174,6 +178,12 @@ const Watch = () => {
     e.stopPropagation();
     navigator.clipboard.writeText(`${window.location.origin}/watch/${videoId}`);
     toast.success('Video link copied to clipboard');
+  };
+  
+  const handleWatchTogether = (videoId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedVideoId(videoId);
+    setIsWatchTogetherOpen(true);
   };
 
   const filteredVideos = videos.filter(video => {
@@ -341,6 +351,15 @@ const Watch = () => {
               className="text-gray-600 hover:text-green-600"
             >
               <Share className="w-4 h-4" />
+            </Button>
+                    
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => handleWatchTogether(video.id, e)}
+              className="text-gray-600 hover:text-purple-600"
+            >
+              <Users className="w-4 h-4" />
             </Button>
 
             <Button
@@ -585,6 +604,13 @@ const Watch = () => {
         </Tabs>
       </div>
     </div>
+    
+    {/* Watch Together Modal */}
+    <WatchTogether 
+      videoId={selectedVideoId || undefined}
+      isOpen={isWatchTogetherOpen}
+      onClose={() => setIsWatchTogetherOpen(false)}
+    />
   );
 };
 

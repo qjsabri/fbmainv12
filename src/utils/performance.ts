@@ -109,7 +109,7 @@ export const addResourceHints = () => {
 // Web Vitals monitoring
 export const measureWebVitals = () => {
   // Largest Contentful Paint
-  if ('PerformanceObserver' in window) {
+  if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
     try {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
@@ -117,13 +117,13 @@ export const measureWebVitals = () => {
         console.log('LCP:', lastEntry.startTime);
       });
       observer.observe({ entryTypes: ['largest-contentful-paint'] });
-    } catch (e) {
-      console.error('LCP observation error:', e);
+    } catch (err) {
+      console.error('LCP observation error:', err);
     }
   }
   
   // First Input Delay
-  if ('PerformanceObserver' in window) {
+  if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
     try {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
@@ -133,8 +133,8 @@ export const measureWebVitals = () => {
         });
       });
       observer.observe({ entryTypes: ['first-input'] });
-    } catch (e) {
-      console.error('FID observation error:', e);
+    } catch (err) {
+      console.error('FID observation error:', err);
     }
   }
 };
@@ -144,7 +144,7 @@ export const loadCriticalResources = () => {
   if (typeof window === 'undefined') return;
   
   // Mark navigation start for performance metrics
-  if (window.performance && performance.mark) {
+  if (window.performance?.mark) {
     performance.mark('app_navigation_start');
   }
   
@@ -158,10 +158,13 @@ export const loadCriticalResources = () => {
   preloadResource('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap', 'style');
 
   // Prefetch important images
-  preloadResource('/favicon.ico', 'image');
+  ['/favicon.ico'].forEach(url => preloadResource(url, 'image'));
+  
+  // Start measuring web vitals
+  measureWebVitals();
   
   // Mark app ready
-  if (window.performance && performance.mark) {
+  if (window.performance?.mark) {
     performance.mark('app_ready');
     try {
       performance.measure('app_initialization', 'app_navigation_start', 'app_ready');
@@ -170,8 +173,8 @@ export const loadCriticalResources = () => {
       if (entries.length) {
         console.info(`App initialization: ${entries[0].duration.toFixed(2)}ms`);
       }
-    } catch (e) {
-      console.warn('Error measuring performance:', e);
+    } catch (err) {
+      console.warn('Error measuring performance:', err);
     }
   }
 };

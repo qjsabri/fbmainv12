@@ -8,7 +8,9 @@ interface LazyComponentProps {
   threshold?: number;
   rootMargin?: string;
   loadDelay?: number;
+  loadDelay?: number;
   triggerOnce?: boolean;
+  loadingStrategy?: 'eager' | 'lazy' | 'viewport' | 'delayed';
   loadingStrategy?: 'eager' | 'lazy' | 'viewport' | 'delayed';
   className?: string;
   id?: string;
@@ -24,7 +26,9 @@ export const LazyComponent: React.FC<LazyComponentProps> = ({
   threshold = 0.1,
   rootMargin = '100px',
   loadDelay = 0,
+  loadDelay = 0,
   triggerOnce = true,
+  loadingStrategy = 'viewport',
   loadingStrategy = 'viewport',
   className,
   id
@@ -40,6 +44,29 @@ export const LazyComponent: React.FC<LazyComponentProps> = ({
     // Handle different loading strategies
     switch (loadingStrategy) {
       case 'eager':
+        setShouldRender(true);
+        break;
+      case 'lazy':
+        // Use requestIdleCallback if available, or setTimeout as fallback
+        const idleCallback = 
+          window.requestIdleCallback || 
+          ((cb) => setTimeout(cb, 1));
+        
+        idleCallback(() => setShouldRender(true));
+        break;
+      case 'viewport':
+        if (inView) {
+          setShouldRender(true);
+        }
+        break;
+      case 'delayed':
+        if (inView) {
+          const timer = setTimeout(() => {
+            setShouldRender(true);
+          }, loadDelay);
+          return () => clearTimeout(timer);
+        }
+        break;
         setShouldRender(true);
         break;
       case 'lazy':

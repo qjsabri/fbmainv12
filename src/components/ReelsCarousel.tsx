@@ -418,4 +418,6 @@ const ReelsCarousel = memo(() => {
   );
 });
 
+ReelsCarousel.displayName = 'ReelsCarousel';
+
 export default ReelsCarousel;

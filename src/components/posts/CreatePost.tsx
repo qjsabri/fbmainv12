@@ -722,4 +722,6 @@ const CreatePost = memo<CreatePostProps>(({ onCreatePost }) => {
   );
 });
 
+CreatePost.displayName = 'CreatePost';
+
 export default CreatePost;

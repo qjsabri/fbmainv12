@@ -218,6 +218,8 @@ const Header = memo(() => {
   );
 });
 
+Header.displayName = 'Header';
+
 // Gamepad icon component
 const Gamepad = ({ className }: { className?: string }) => (
   <svg

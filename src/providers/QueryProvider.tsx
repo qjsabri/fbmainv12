@@ -2,6 +2,7 @@ import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { APP_CONFIG } from '@/lib/constants';
 import { handleError } from '@/lib/utils';
+import { handleError } from '@/lib/utils';
 
 // Create a client
 const queryClient = new QueryClient({
