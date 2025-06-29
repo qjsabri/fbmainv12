@@ -365,7 +365,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
                             <span className="text-xs">{reaction}</span>
                           </div>
                         )
-                      <span>{memoizedFormatTimeAgo(post.created_at)}</span>
+                      ))}
                     </div>
                   )}
                 </div>
