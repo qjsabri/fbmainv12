@@ -6,18 +6,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Performance utilities
-export const debounce = <T extends (...args: unknown[]) => unknown>(
-  func: T,
-  delay: number = APP_CONFIG.DEBOUNCE_DELAY
-): ((...args: Parameters<T>) => void) => {
-  let timeoutId: NodeJS.Timeout;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func(...args), delay);
-  };
-};
-
 // Improved debounce function with proper typings
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
