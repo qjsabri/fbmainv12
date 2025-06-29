@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import NewsFeed from '@/components/NewsFeed';
+import PostCard from '@/components/posts/PostCard';
 import Stories from '@/components/Stories';
 import CreatePost from '@/components/posts/CreatePost';
 import { Button } from '@/components/ui/button';
@@ -85,11 +85,13 @@ const Home = () => {
       <div className="space-y-4">
         <Stories />
         <Card>
-          <CardContent className="p-4">
-            <CreatePost onCreatePost={handleCreatePost} />
-          </CardContent>
+          <CreatePost onCreatePost={handleCreatePost} />
         </Card>
-        <NewsFeed initialPosts={posts} />
+        <div className="space-y-4">
+          {posts.map(post => (
+            <PostCard key={post.id} post={post} />
+          ))}
+        </div>
       </div>
     </div>
   );

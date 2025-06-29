@@ -328,7 +328,7 @@ const CreatePost = memo<CreatePostProps>(({ onCreatePost }) => {
 
   return (<>
       <Card className="card-responsive bg-white shadow-sm border-0 shadow-gray-100 mb-4 dark:bg-gray-800 dark:shadow-gray-900">
-        <CardContent className="spacing-responsive">
+        <CardContent className="p-4">
           <div className="flex space-x-3">
             <Avatar className="avatar-responsive">
               <AvatarImage src={user.user_metadata?.avatar_url} />
