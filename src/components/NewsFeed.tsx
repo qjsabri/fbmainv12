@@ -187,7 +187,6 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     
     toast.success('Vote recorded');
   }, [userPollVote, post?.id]);
-  }, [userPollVote, post]);
 
   const getTotalVotes = useCallback((): number => {
     return Object.values(pollVotes).reduce((sum, count) => sum + count, 0);
