@@ -8,9 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { MOCK_IMAGES } from '@/lib/constants';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useCallback } from 'framer-motion';
+
 interface LiveStreamProps {
   isOpen: boolean;
   onClose: () => void;

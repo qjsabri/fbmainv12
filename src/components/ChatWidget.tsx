@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import EmojiPicker from './EmojiPicker';
 import AttachmentOptions from './AttachmentOptions';
-import { memo } from 'react';
 
 interface Contact {
   id: string;
@@ -36,8 +35,7 @@ interface Message {
   }[];
 }
 
-// Memoize to prevent unnecessary re-renders
-const ChatWidget = memo(() => {
+const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -857,7 +855,7 @@ const ChatWidget = memo(() => {
       </Dialog>
     </>
   );
-});
+};
 
 // Search icon component
 const Search = ({ className }: { className?: string }) => (
@@ -895,7 +893,5 @@ const Play = ({ className }: { className?: string }) => (
     <polygon points="5 3 19 12 5 21 5 3" />
   </svg>
 );
-
-ChatWidget.displayName = 'ChatWidget';
 
 export default ChatWidget;
