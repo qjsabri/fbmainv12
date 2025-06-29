@@ -71,8 +71,8 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   const [currentReaction, setCurrentReaction] = useState<string | null>(null);
   const [userPollVote, setUserPollVote] = useState<number | null>(null);
   const [pollVotes, setPollVotes] = useState<Record<string, number>>(
-    post?.pollOptions?.slice(1)?.reduce((acc, _, index) => {
-      acc[index] = post?.pollVotes?.[index] || Math.floor(Math.random() * 50);
+    post.pollOptions?.slice(1)?.reduce((acc, _, index) => {
+      acc[index] = post.pollVotes?.[index] || Math.floor(Math.random() * 50);
       return acc;
     }, {} as Record<string, number>) || {}
   );
@@ -81,9 +81,9 @@ const PostCard = memo<PostCardProps>(({ post }) => {
 
   // Check if post is saved
   React.useEffect(() => {
-    if (post && post.id) {
+    if (post.id) {
       const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
-      if (savedPosts && savedPosts.includes(post.id)) {
+      if (savedPosts.includes(post.id)) {
         setIsSaved(true);
       }
     }
@@ -118,8 +118,8 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   const handleShare = useCallback(() => {
     if (navigator.share) {
       navigator.share({
-        title: `Post by ${post?.profiles?.full_name || 'Unknown'}`,
-        text: post?.content || '',
+        title: `Post by ${post.profiles?.full_name || 'Unknown'}`,
+        text: post.content || '',
         url: window.location.href,
       }).catch(err => {
         console.error('Error sharing:', err);
@@ -171,9 +171,7 @@ const PostCard = memo<PostCardProps>(({ post }) => {
     
     // Save vote to storage
     const pollVotes = storage.get<Record<string, number>>(STORAGE_KEYS.POLL_VOTES, {});
-    if (post) {
-      pollVotes[post.id] = optionIndex;
-    }
+    pollVotes[post.id] = optionIndex;
     storage.set(STORAGE_KEYS.POLL_VOTES, pollVotes);
     
   }, [userPollVote, post]);
@@ -213,15 +211,15 @@ const PostCard = memo<PostCardProps>(({ post }) => {
   }, [currentReaction]);
 
   // Determine if the post content contains a GIF
-  const hasGif = post?.content?.includes('[GIF:') || false;
+  const hasGif = post.content?.includes('[GIF:') || false;
   let gifUrl = '';
-  let contentWithoutGif = post?.content || '';
+  let contentWithoutGif = post.content || '';
   
   if (hasGif) {
-    const gifMatch = post?.content?.match(/\[GIF: (.*?)\]/);
+    const gifMatch = post.content?.match(/\[GIF: (.*?)\]/);
     if (gifMatch && gifMatch[1]) {
       gifUrl = gifMatch[1];
-      contentWithoutGif = (post?.content || '').replace(/\[GIF: .*?\]/, '').trim();
+      contentWithoutGif = contentWithoutGif.replace(/\[GIF: .*?\]/, '').trim();
     }
   }
 
