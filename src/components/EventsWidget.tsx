@@ -3,6 +3,7 @@ import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MOCK_IMAGES, getSafeImage } from '@/lib/constants';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
