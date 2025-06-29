@@ -10,6 +10,7 @@ import PollCreator from '../PollCreator';
 import GifPicker from '../GifPicker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MOCK_IMAGES, getSafeImage } from '@/lib/constants';
+import { memo, useCallback } from 'react';
 
 interface PostData {
   content: string;
@@ -28,7 +29,7 @@ interface CreatePostProps {
   onCreatePost?: (post: PostData) => void;
 }
 
-const CreatePost: React.FC<CreatePostProps> = ({ onCreatePost }) => {
+const CreatePost = memo<CreatePostProps>(({ onCreatePost }) => {
   const [content, setContent] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -50,7 +51,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onCreatePost }) => {
   
   const { user } = useAuth(); 
 
-  const handleSubmit = async () => {
+  // Optimize event handlers with useCallback
+  const handleSubmit = useCallback(async () => {
     if (!content.trim() && selectedImages.length === 0 && !isPollActive) {
       toast.error('Please add some content, images, or create a poll');
       return;
@@ -93,7 +95,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onCreatePost }) => {
       toast.error('Failed to create post');
       console.error('Error creating post:', error);
     }
-  };
+  }, [content, selectedImages, feeling, location, taggedFriends, privacy, isLive, isPollActive, pollOptions, onCreatePost]);
 
   const handleExpand = () => {
     setIsExpanded(true);

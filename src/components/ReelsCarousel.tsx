@@ -7,7 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MOCK_IMAGES, getSafeImage } from '@/lib/constants';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { memo, useCallback } from 'react';
 import { storage } from '@/lib/storage';
 import { STORAGE_KEYS } from '@/lib/constants';
 
@@ -30,7 +31,7 @@ interface ReelPreview {
   };
 }
 
-const ReelsCarousel = () => {
+const ReelsCarousel = memo(() => {
   const navigate = useNavigate();
   const [reels, setReels] = useState<ReelPreview[]>([
     {
@@ -415,6 +416,6 @@ const ReelsCarousel = () => {
       </div>
     </div>
   );
-};
+});
 
 export default ReelsCarousel;
