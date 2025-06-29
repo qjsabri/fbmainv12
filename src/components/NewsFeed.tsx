@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button';
 import { MOCK_IMAGES } from '@/lib/constants';
 import { toast } from 'sonner';
 import NewsFeedTabs from './NewsFeedTabs';
-import NewsFeedFilters from './NewsFeedFilters';
 import LazyComponent from './ui/LazyComponent';
 
 const NewsFeed = () => {

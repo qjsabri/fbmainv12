@@ -3,12 +3,10 @@ import { useInView } from 'react-intersection-observer';
 import Spinner from './Spinner';
 
 interface LazyComponentProps {
-  children: React.ReactNode;
   fallback?: React.ReactNode;
   threshold?: number;
   rootMargin?: string;
   loadDelay?: number;
-  triggerOnce?: boolean;
   loadingStrategy?: 'eager' | 'lazy' | 'viewport' | 'delayed';
   className?: string;
   id?: string;

@@ -1,16 +1,15 @@
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Calendar, Users, MapPin, Filter, Heart, Bookmark, Clock } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, MapPin, User, Heart, Bookmark, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface NewsFeedFiltersProps {
   creator: string;
   setCreator: (value: string) => void;
-  dateRange: string;
-  setDateRange: (value: string) => void;
+  dateRange: string | any;
+  setDateRange: (value: any) => void;
   location: string;
   setLocation: (value: string) => void;
   liked: boolean;
@@ -35,159 +34,111 @@ const NewsFeedFilters: React.FC<NewsFeedFiltersProps> = ({
   onApply,
   onClear
 }) => {
-  // Count active filters
-  const activeFiltersCount = [
-    creator !== '',
-    dateRange !== 'all',
-    location !== '',
-    liked,
-    saved
-  ].filter(Boolean).length;
-
   return (
-    <Card className="mb-4 overflow-hidden">
-      <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-medium text-sm dark:text-white">Advanced Filters</h3>
-          {activeFiltersCount > 0 && (
-            <Badge variant="secondary">{activeFiltersCount} active</Badge>
-          )}
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold flex items-center dark:text-white">
+          <Filter className="mr-2 h-5 w-5" />
+          Filter Posts
+        </h3>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1 dark:text-gray-200">
+            <Users className="w-4 h-4 inline mr-2" />
+            By Creator
+          </label>
+          <Input
+            value={creator}
+            onChange={(e) => setCreator(e.target.value)}
+            placeholder="Enter creator name"
+            className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
         </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Creator</label>
-            <div className="relative">
-              <User className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input 
-                value={creator}
-                onChange={(e) => setCreator(e.target.value)}
-                placeholder="Filter by creator name"
-                className="pl-8 sm:pl-10 text-xs sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Date Range</label>
-            <Select value={dateRange} onValueChange={setDateRange} >
-              <SelectTrigger className="text-xs sm:text-sm dark:bg-gray-700 dark:border-gray-600">
-                <SelectValue placeholder="Select date range" />
-              </SelectTrigger>
-              <SelectContent className="text-xs sm:text-sm">
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="year">This Year</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Location</label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input 
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Filter by location"
-                className="pl-10 text-xs sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-end space-x-4">
-            <div className="flex items-center space-x-1 sm:space-x-2">
+
+        <div>
+          <label className="block text-sm font-medium mb-1 dark:text-gray-200">
+            <Calendar className="w-4 h-4 inline mr-2" />
+            Date Range
+          </label>
+          <Select 
+            value={typeof dateRange === 'string' ? dateRange : 'custom'} 
+            onValueChange={setDateRange}
+          >
+            <SelectTrigger className="dark:bg-gray-700 dark:border-gray-600">
+              <SelectValue placeholder="Select date range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="year">This Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1 dark:text-gray-200">
+            <MapPin className="w-4 h-4 inline mr-2" />
+            Location
+          </label>
+          <Input
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Filter by location"
+            className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium mb-1 dark:text-gray-200">
+            Content Filters
+          </label>
+          <div className="flex flex-col space-y-2">
+            <label className="flex items-center space-x-2 cursor-pointer">
               <input 
                 type="checkbox" 
-                id="liked-posts"
-                checked={liked}
-                onChange={(e) => setLiked(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 dark:text-blue-400"
+                checked={liked} 
+                onChange={() => setLiked(!liked)} 
+                className="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
               />
-              <label htmlFor="liked-posts" className="text-xs sm:text-sm dark:text-gray-200">
-                Liked Posts
-              </label>
-            </div>
+              <span className="text-sm flex items-center dark:text-gray-200">
+                <Heart className="w-4 h-4 mr-2 text-red-500" />
+                Only show posts I've liked
+              </span>
+            </label>
             
-            <div className="flex items-center space-x-1 sm:space-x-2">
+            <label className="flex items-center space-x-2 cursor-pointer">
               <input 
                 type="checkbox" 
-                id="saved-posts"
-                checked={saved}
-                onChange={(e) => setSaved(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 dark:text-blue-400"
+                checked={saved} 
+                onChange={() => setSaved(!saved)} 
+                className="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
               />
-              <label htmlFor="saved-posts" className="text-xs sm:text-sm dark:text-gray-200">
-                Saved Posts
-              </label>
-            </div>
+              <span className="text-sm flex items-center dark:text-gray-200">
+                <Bookmark className="w-4 h-4 mr-2 text-purple-500" />
+                Only show posts I've saved
+              </span>
+            </label>
           </div>
         </div>
-        
-        <div className="flex justify-end space-x-2 pt-2 mt-1">
+
+        <div className="flex justify-between pt-4 border-t dark:border-gray-700">
           <Button 
             variant="outline" 
-            size="sm"
             onClick={onClear}
-            className="text-xs dark:border-gray-600 dark:text-gray-200"
+            className="dark:border-gray-600 dark:text-gray-200"
           >
-            Clear Filters
+            Clear All
           </Button>
-          <Button size="sm" onClick={onApply} className="text-xs">
+          <Button onClick={onApply}>
             Apply Filters
           </Button>
         </div>
-
-        {/* Active filters display */}
-        {activeFiltersCount > 0 && (
-          <div className="flex flex-wrap gap-2 pt-2 border-t dark:border-gray-700">
-            <span className="text-xs text-gray-500 dark:text-gray-400 self-center">Active filters:</span>
-            
-            {creator && (
-              <Badge variant="outline" className="text-xs flex items-center space-x-1 dark:border-gray-600">
-                <User className="w-3 h-3" />
-                <span>{creator}</span>
-                <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setCreator('')} />
-              </Badge>
-            )}
-            
-            {dateRange !== 'all' && (
-              <Badge variant="outline" className="text-xs flex items-center space-x-1 dark:border-gray-600">
-                <Calendar className="w-3 h-3" />
-                <span>{dateRange}</span>
-                <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setDateRange('all')} />
-              </Badge>
-            )}
-            
-            {location && (
-              <Badge variant="outline" className="text-xs flex items-center space-x-1 dark:border-gray-600">
-                <MapPin className="w-3 h-3" />
-                <span>{location}</span>
-                <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setLocation('')} />
-              </Badge>
-            )}
-            
-            {liked && (
-              <Badge variant="outline" className="text-xs flex items-center space-x-1 dark:border-gray-600">
-                <Heart className="w-3 h-3" />
-                <span>Liked</span>
-                <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setLiked(false)} />
-              </Badge>
-            )}
-            
-            {saved && (
-              <Badge variant="outline" className="text-xs flex items-center space-x-1 dark:border-gray-600">
-                <Bookmark className="w-3 h-3" />
-                <span>Saved</span>
-                <X className="w-3 h-3 ml-1 cursor-pointer" onClick={() => setSaved(false)} />
-              </Badge>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

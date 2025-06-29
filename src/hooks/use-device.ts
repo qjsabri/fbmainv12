@@ -30,26 +30,26 @@ export function useIsMobile() {
 }
 
 export function useIsTablet() {
-  const [isTablet, setIsTablet] = useState<boolean>(() => 
-    typeof window !== 'undefined' ? 
-    window.innerWidth >= APP_CONFIG.MOBILE_BREAKPOINT && 
-    window.innerWidth < APP_CONFIG.DESKTOP_BREAKPOINT : false);
+  const [isTablet, setIsTablet] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const width = window.innerWidth;
+    return width >= APP_CONFIG.MOBILE_BREAKPOINT && width < APP_CONFIG.DESKTOP_BREAKPOINT;
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    const checkTablet = () => {
+    const checkTablet = debounce(() => {
       const width = window.innerWidth;
       const currentValue = width >= APP_CONFIG.MOBILE_BREAKPOINT && width < APP_CONFIG.DESKTOP_BREAKPOINT;
       if (currentValue !== isTablet) {
         setIsTablet(currentValue);
       }
-    };
+    }, 100);
+
+    window.addEventListener("resize", checkTablet);
     
-    const debouncedResize = debounce(checkTablet, 100);
-    window.addEventListener("resize", debouncedResize);
-    
-    return () => window.removeEventListener("resize", debouncedResize);
+    return () => window.removeEventListener("resize", checkTablet);
   }, [isTablet]);
 
   return isTablet;

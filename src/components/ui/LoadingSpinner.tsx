@@ -30,7 +30,8 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         'animate-spin rounded-full border-2 border-t-transparent',
         sizeClasses[size],
         colorClasses[color],
-        className
+        className,
+        'will-change-transform'
       )}
       role="status"
       aria-label="Loading"

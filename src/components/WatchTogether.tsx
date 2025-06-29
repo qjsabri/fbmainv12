@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Play, Pause, Volume2, VolumeX, Film, Users, Send, UserPlus, Share, Copy, Check } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Film, Users, Send, UserPlus, Share, Copy, Check, VideoOff, MicOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { MOCK_IMAGES, getSafeImage } from '@/lib/constants';
 
