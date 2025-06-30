@@ -129,6 +129,27 @@ export const storage = {
     } catch {
       return false;
     }
+  },
+  
+  // Get storage usage info
+  getUsage: (): { used: number, total: number, percentage: number } | null => {
+    if (typeof window === 'undefined' || !navigator.storage || !navigator.storage.estimate) {
+      return null;
+    }
+    
+    try {
+      return navigator.storage.estimate().then(estimate => {
+        if (!estimate.usage || !estimate.quota) return null;
+        
+        return {
+          used: Math.round(estimate.usage / 1024 / 1024), // MB
+          total: Math.round(estimate.quota / 1024 / 1024), // MB
+          percentage: Math.round((estimate.usage / estimate.quota) * 100)
+        };
+      });
+    } catch {
+      return null;
+    }
   }
 };
 

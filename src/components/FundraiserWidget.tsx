@@ -90,7 +90,7 @@ const FundraiserWidget = () => {
   };
 
   return (
-    <Card className="hidden lg:block">
+    <Card>
       <CardHeader className="p-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <div className="flex items-center">

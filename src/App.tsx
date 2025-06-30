@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -8,6 +8,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { ROUTES } from "@/lib/constants";
 import { Toaster } from "@/components/ui/sonner";
 import ThemeProvider from "@/components/ThemeProvider";
+import { loadCriticalResources } from "@/utils/performance";
 
 // Custom suspense fallback
 const SuspenseFallback = () => (
@@ -47,6 +48,31 @@ const LiveStream = lazy(() => import("./pages/LiveStream"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function App() {
+  useEffect(() => {
+    // Load critical resources for performance
+    loadCriticalResources();
+    
+    // Add web vitals tracking
+    if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
+      try {
+        const observer = new PerformanceObserver((list) => {
+          list.getEntries().forEach(entry => {
+            if (entry.entryType === 'largest-contentful-paint') {
+              console.log('LCP:', entry.startTime);
+            } else if (entry.entryType === 'first-input') {
+              console.log('FID:', entry.processingStart - entry.startTime);
+            }
+          });
+        });
+        
+        // Observe LCP and FID
+        observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input'] });
+      } catch (e) {
+        console.warn('Performance metrics could not be observed', e);
+      }
+    }
+  }, []);
+
   return (
     <ErrorBoundary>
       <BrowserRouter>

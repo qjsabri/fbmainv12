@@ -3,7 +3,7 @@ import { Bookmark, ExternalLink, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MOCK_IMAGES, STORAGE_KEYS, getSafeImage } from '@/lib/constants';
+import { MOCK_IMAGES, STORAGE_KEYS } from '@/lib/constants';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { storage } from '@/lib/storage';
@@ -31,39 +31,34 @@ const SavedItemsWidget = () => {
     const loadSavedItems = () => {
       setIsLoading(true);
       
-      // Get saved items from storage
-      const savedItems = storage.get<SavedItem[]>(STORAGE_KEYS.SAVED_ITEMS);
+      // Get saved posts
       const savedPosts = storage.get<string[]>(STORAGE_KEYS.SAVED_POSTS, []);
       
-      let allItems: SavedItem[] = [];
+      // Get saved items from storage
+      const savedItems = storage.get<SavedItem[]>(STORAGE_KEYS.SAVED_ITEMS, []);
       
-      if (savedItems && savedItems.length > 0) {
-        allItems = [...savedItems];
-      }
+      // Combine saved posts with saved items
+      let allItems: SavedItem[] = [...(savedItems || [])];
       
-      // Add saved posts if they're not already in the items
+      // Add saved posts if they're not already in the saved items
       if (savedPosts && savedPosts.length > 0) {
-        const existingIds = new Set(allItems.map(item => item.id));
+        const existingPostIds = new Set(allItems.filter(item => item.type === 'post').map(item => item.originalId));
         
-        // Create saved item entries for posts
-        const postItems: SavedItem[] = savedPosts
-          .filter(id => !existingIds.has(id))
-          .map(id => ({
-            id,
-            type: 'post',
-            title: `Saved Post #${id}`,
-            content: 'This is a saved post from your feed.',
-            image: MOCK_IMAGES.POSTS[parseInt(id) % MOCK_IMAGES.POSTS.length],
-            savedDate: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-            collection: 'Posts',
-            creator: {
-              name: ['Sarah Johnson', 'Mike Chen', 'Emma Wilson', 'David Kim'][parseInt(id) % 4],
-              avatar: MOCK_IMAGES.AVATARS[parseInt(id) % MOCK_IMAGES.AVATARS.length],
-              verified: Math.random() > 0.5
-            }
-          }));
-        
-        allItems = [...allItems, ...postItems];
+        // Add posts that aren't already in the saved items
+        savedPosts.forEach(postId => {
+          if (!existingPostIds.has(postId)) {
+            allItems.push({
+              id: `post-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              originalId: postId,
+              type: 'post',
+              title: `Saved Post #${postId}`,
+              savedDate: new Date().toISOString(),
+              collection: 'posts',
+              description: 'A post you saved for later',
+              image: `https://images.pexels.com/photos/${1000000 + parseInt(postId.replace(/\D/g, '') || '0') % 10000}/pexels-photo-${1000000 + parseInt(postId.replace(/\D/g, '') || '0') % 10000}.jpeg?w=800&h=600&fit=crop`
+            });
+          }
+        });
       }
       
       // If still no items, create mock data
@@ -71,6 +66,7 @@ const SavedItemsWidget = () => {
         allItems = [
           {
             id: '1',
+            originalId: 'post_1',
             type: 'post',
             title: 'Amazing React Development Tips',
             image: MOCK_IMAGES.POSTS[0],
@@ -82,7 +78,7 @@ const SavedItemsWidget = () => {
             type: 'video',
             title: 'How to Build a Social Media App',
             image: MOCK_IMAGES.POSTS[1],
-            savedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+            savedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
             collection: 'Videos'
           },
           {
@@ -94,12 +90,17 @@ const SavedItemsWidget = () => {
             url: 'https://example.com/article'
           }
         ];
+        
+        // Save mock data to storage
+        storage.set(STORAGE_KEYS.SAVED_ITEMS, allItems);
       }
       
-      // Save all items to storage
-      storage.set(STORAGE_KEYS.SAVED_ITEMS, allItems);
+      // Sort by date (newest first) and take only the most recent items (up to 3)
+      const sortedItems = allItems.sort((a, b) => 
+        new Date(b.savedDate).getTime() - new Date(a.savedDate).getTime()
+      ).slice(0, 3);
       
-      setItems(allItems);
+      setItems(sortedItems);
       setIsLoading(false);
     };
     
@@ -109,7 +110,17 @@ const SavedItemsWidget = () => {
   const handleViewItem = (itemId: string) => {
     const item = items.find(i => i.id === itemId);
     if (item) {
-      toast.success(`Viewing ${item.title}`);
+      if (item.type === 'post' && item.originalId) {
+        // Navigate to the post in the feed
+        navigate(`/?post=${item.originalId}`);
+        return;
+      }
+      
+      if (item.url) {
+        window.open(item.url, '_blank');
+      } else {
+        toast.info(`Viewing saved item: ${item.title}`);
+      }
     }
   };
 
@@ -117,40 +128,39 @@ const SavedItemsWidget = () => {
     navigate('/saved');
   };
 
-  // Format time ago
-  const formatTimeAgo = (dateString: string): string => {
-    const now = new Date();
-    const past = new Date(dateString);
-    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return diffInSeconds <= 5 ? 'now' : `${diffInSeconds}s`;
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)}w`;
-    
-    // More precise month/year formatting
-    const months = Math.floor(diffInSeconds / 2592000);
-    if (months < 12) return `${months}mo`;
-    
-    const years = Math.floor(months / 12);
-    const remainingMonths = months % 12;
-    return remainingMonths > 0 ? `${years}y ${remainingMonths}mo` : `${years}y`;
+  const getTypeColor = (type: string): string => {
+    switch (type) {
+      case 'post': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'video': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'event': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'marketplace': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+      case 'article': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
+      case 'photo': return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300';
+      case 'link': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300';
+    }
   };
 
   if (isLoading) {
     return (
-      <Card className="hidden lg:block">
+      <Card>
         <CardHeader className="p-3">
           <CardTitle className="text-base font-semibold flex items-center">
             <Bookmark className="w-5 h-5 mr-2" />
             <span>Saved Items</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4 flex justify-center">
-          <div className="animate-pulse flex flex-col items-center">
-            <div className="h-10 w-24 bg-gray-200 rounded mb-2 dark:bg-gray-700"></div>
-            <div className="h-6 w-32 bg-gray-200 rounded dark:bg-gray-700"></div>
+        <CardContent className="p-2">
+          <div className="animate-pulse space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex space-x-3">
+                <div className="w-16 h-16 bg-gray-200 rounded-lg dark:bg-gray-700"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 dark:bg-gray-700"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 dark:bg-gray-700"></div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -160,7 +170,7 @@ const SavedItemsWidget = () => {
   if (items.length === 0) return null;
 
   return (
-    <Card className="hidden lg:block">
+    <Card>
       <CardHeader className="p-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <div className="flex items-center">
@@ -179,7 +189,7 @@ const SavedItemsWidget = () => {
       </CardHeader>
       <CardContent className="p-2">
         <div className="space-y-3">
-          {items.slice(0, 3).map((item) => (
+          {items.map((item) => (
             <div 
               key={item.id} 
               className="flex space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors dark:hover:bg-gray-700"
@@ -189,32 +199,37 @@ const SavedItemsWidget = () => {
                 <img
                   src={item.image}
                   alt={item.title}
-                  className="w-12 h-12 rounded-lg object-cover"
+                  className="w-16 h-16 rounded-lg object-cover"
                 />
               ) : (
-                <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center dark:bg-gray-700">
+                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center dark:bg-gray-700">
                   <Bookmark className="w-6 h-6 text-gray-500 dark:text-gray-400" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm text-gray-900 truncate dark:text-gray-100">{item.title}</h4>
-                <div className="flex items-center mt-1">
-                  <Clock className="w-3 h-3 text-gray-500 mr-1 dark:text-gray-400" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Saved {formatTimeAgo(item.savedDate)}
-                  </span>
+                <div className="flex items-center space-x-2">
+                  <Badge className={`text-xs ${getTypeColor(item.type)}`}>
+                    <span className="capitalize">{item.type}</span>
+                  </Badge>
+                  {item.url && (
+                    <ExternalLink className="w-3 h-3 text-gray-400" />
+                  )}
+                  {item.isFavorite && (
+                    <Heart className="w-3 h-3 text-red-500 fill-current" />
+                  )}
+                </div>
+                <h4 className="font-medium text-sm text-gray-900 truncate mt-1 dark:text-gray-100">{item.title}</h4>
+                <div className="flex items-center space-x-1 mt-1">
+                  <Clock className="w-3 h-3 text-gray-500" />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Saved {formatTimeAgo(item.savedDate)}</p>
                 </div>
               </div>
-              {item.url && (
-                <ExternalLink className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-              )}
             </div>
           ))}
-          
           <Button 
-            variant="ghost" 
+            variant="outline" 
             size="sm" 
-            className="w-full mt-3 text-blue-600 dark:text-blue-400"
+            className="w-full text-blue-600 dark:text-blue-400 dark:border-gray-600"
             onClick={handleViewAll}
           >
             View All Saved Items
@@ -223,6 +238,45 @@ const SavedItemsWidget = () => {
       </CardContent>
     </Card>
   );
+};
+
+// Heart icon component
+const Heart = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+  </svg>
+);
+
+// Helper function to format time ago
+const formatTimeAgo = (dateString: string): string => {
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return diffInSeconds <= 5 ? 'now' : `${diffInSeconds}s`;
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d`;
+  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)}w`;
+  
+  // More precise month/year formatting
+  const months = Math.floor(diffInSeconds / 2592000);
+  if (months < 12) return `${months}mo`;
+  
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  return remainingMonths > 0 ? `${years}y ${remainingMonths}mo` : `${years}y`;
 };
 
 export default SavedItemsWidget;

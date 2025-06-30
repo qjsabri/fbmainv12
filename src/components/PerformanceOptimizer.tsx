@@ -57,6 +57,69 @@ const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({ children })
       isInitialRender.current = false;
     }
     
+    // Setup FPS measurement
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let frameId: number;
+    
+    const measureFPS = () => {
+      frameCount++;
+      const now = performance.now();
+      const elapsed = now - lastTime;
+      
+      if (elapsed >= 1000) {
+        const fps = Math.round((frameCount * 1000) / elapsed);
+        
+        // Get memory info if available (Chrome only)
+        let memoryUsage = null;
+        try {
+          const memory = (performance as any).memory;
+          if (memory) {
+            memoryUsage = Math.round(memory.usedJSHeapSize / (1024 * 1024));
+          }
+        } catch (e) {
+          // Memory API not available
+        }
+        
+        setPerformanceMetrics(prev => ({
+          ...prev,
+          fps,
+          memory: memoryUsage
+        }));
+        
+        frameCount = 0;
+        lastTime = now;
+      }
+      
+      frameId = requestAnimationFrame(measureFPS);
+    };
+    
+    // Start measuring FPS
+    frameId = requestAnimationFrame(measureFPS);
+    
+    // Track network performance
+    let observer: PerformanceObserver | null = null;
+    try {
+      observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          // Only process resource timing entries
+          if (entry.entryType === 'resource') {
+            setPerformanceMetrics(prev => ({
+              ...prev,
+              networkLatency: Math.max(prev.networkLatency, entry.duration),
+              resourcesLoaded: prev.resourcesLoaded + 1,
+              resourcesTotal: document.querySelectorAll('img, script, link, iframe').length
+            }));
+          }
+        }
+      });
+      
+      // Start observing resource timing entries
+      observer.observe({ entryTypes: ['resource'] });
+    } catch (e) {
+      console.warn('PerformanceObserver not supported', e);
+    }
+    
     // Optimize image loading
     const lazyLoadImages = debounce(() => {
       if ('IntersectionObserver' in window) {
@@ -95,8 +158,10 @@ const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({ children })
     lazyLoadImages();
     
     return () => {
+      cancelAnimationFrame(frameId);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
+      if (observer) observer.disconnect();
     };
   }, []);
 

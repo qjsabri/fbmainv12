@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Camera, Calendar, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MOCK_IMAGES } from '@/lib/constants';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { format, subYears, isSameDay } from 'date-fns';
 
@@ -85,6 +86,7 @@ const MemoryWidget = () => {
 
   const handleViewMemory = (memoryId: string) => {
     navigate('/memories');
+    toast.info(`Viewing memory: ${memories.find(m => m.id === memoryId)?.title || 'Memory'}`);
   };
 
   const handleViewAllMemories = () => {
@@ -102,7 +104,7 @@ const MemoryWidget = () => {
 
   if (isLoading) {
     return (
-      <Card className="hidden lg:block">
+      <Card>
         <CardHeader className="p-3">
           <CardTitle className="text-base font-semibold flex items-center">
             <Clock className="w-5 h-5 mr-2 text-blue-600" />
@@ -119,10 +121,33 @@ const MemoryWidget = () => {
     );
   }
 
-  if (memories.length === 0) return null;
+  if (memories.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="p-3">
+          <CardTitle className="text-base font-semibold flex items-center">
+            <Clock className="w-5 h-5 mr-2 text-blue-600" />
+            <span>Memories</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 text-center">
+          <Clock className="w-10 h-10 text-gray-400 mx-auto mb-2 dark:text-gray-600" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">No memories for today</p>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mt-2 text-blue-600 dark:text-blue-400"
+            onClick={handleViewAllMemories}
+          >
+            View all memories
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="hidden lg:block">
+    <Card>
       <CardHeader className="p-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <div className="flex items-center">
@@ -176,5 +201,7 @@ const MemoryWidget = () => {
     </Card>
   );
 };
+
+
 
 export default MemoryWidget;

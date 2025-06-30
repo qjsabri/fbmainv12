@@ -3,6 +3,7 @@ import { Cloud, Sun, CloudRain, CloudSnow, CloudLightning, Wind, Thermometer } f
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useCallback } from 'react';
 
 interface WeatherData {
   location: string;
@@ -46,11 +47,11 @@ const WeatherWidget = () => {
           humidity: 65,
           windSpeed: 12,
           forecast: [
-            { day: 'Today', condition: 'sunny', high: 21, low: 14 },
-            { day: 'Mon', condition: 'cloudy', high: 19, low: 13 },
-            { day: 'Tue', condition: 'rainy', high: 17, low: 12 },
-            { day: 'Wed', condition: 'cloudy', high: 18, low: 13 },
-            { day: 'Thu', condition: 'sunny', high: 22, low: 15 }
+            { day: 'Mon', condition: 'sunny', high: 21, low: 14 },
+            { day: 'Tue', condition: 'cloudy', high: 19, low: 13 },
+            { day: 'Wed', condition: 'rainy', high: 17, low: 12 },
+            { day: 'Thu', condition: 'cloudy', high: 18, low: 13 },
+            { day: 'Fri', condition: 'sunny', high: 22, low: 15 }
           ]
         };
         
@@ -97,7 +98,7 @@ const WeatherWidget = () => {
 
   if (isLoading) {
     return (
-      <Card className="hidden lg:block">
+      <Card>
         <CardHeader className="p-3">
           <CardTitle className="text-base font-semibold flex items-center">
             <Cloud className="w-5 h-5 mr-2" />
@@ -116,7 +117,7 @@ const WeatherWidget = () => {
 
   if (error || !weather) {
     return (
-      <Card className="hidden lg:block">
+      <Card>
         <CardHeader className="p-3">
           <CardTitle className="text-base font-semibold flex items-center">
             <Cloud className="w-5 h-5 mr-2" />
@@ -139,7 +140,7 @@ const WeatherWidget = () => {
   }
 
   return (
-    <Card className="hidden lg:block">
+    <Card>
       <CardHeader className="p-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <div className="flex items-center">

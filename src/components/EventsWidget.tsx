@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MOCK_IMAGES, getSafeImage } from '@/lib/constants';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import { storage } from '@/lib/storage';
 
 interface Event {
@@ -103,16 +102,18 @@ const EventsWidget = () => {
         ? { ...event, isGoing: action === 'going' ? !event.isGoing : event.isGoing }
         : event
     ));
-    
-    toast.success(`Event status updated`);
   };
 
   const handleViewAll = () => {
     navigate('/events');
   };
 
+  const handleCreateEvent = () => {
+    navigate('/events');
+  };
+
   return (
-    <Card className="hidden lg:block">
+    <Card>
       <CardHeader className="p-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <div className="flex items-center">
@@ -122,10 +123,10 @@ const EventsWidget = () => {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={handleViewAll}
-            className="text-blue-600 text-xs dark:text-blue-400"
+            onClick={handleCreateEvent}
+            className="h-8 w-8 p-0"
           >
-            See All
+            <Plus className="w-4 h-4" />
           </Button>
         </CardTitle>
       </CardHeader>
@@ -141,15 +142,15 @@ const EventsWidget = () => {
                 />
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-sm text-gray-900 truncate dark:text-white">{event.title}</h4>
-                  <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1 dark:text-gray-400">
+                  <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
                     <Clock className="w-3 h-3" />
                     <span>{event.date} at {event.time}</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1 dark:text-gray-400">
+                  <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
                     <MapPin className="w-3 h-3" />
                     <span className="truncate">{event.location}</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1 dark:text-gray-400">
+                  <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
                     <Users className="w-3 h-3" />
                     <span>{event.attendees} going</span>
                   </div>
