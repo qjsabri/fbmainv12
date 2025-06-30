@@ -23,7 +23,7 @@ const FriendRequestsPanel = memo(() => {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="hidden lg:block">
         <CardHeader className="p-3">
           <CardTitle className="text-sm sm:text-base font-semibold flex items-center">
             <UserPlus className="w-5 h-5 mr-2" />
@@ -39,7 +39,7 @@ const FriendRequestsPanel = memo(() => {
 
   if (!requests || requests.length === 0) {
     return (
-      <Card>
+      <Card className="hidden lg:block">
         <CardHeader className="p-3">
           <CardTitle className="text-sm sm:text-base font-semibold flex items-center">
             <UserPlus className="w-5 h-5 mr-2" />
@@ -54,7 +54,7 @@ const FriendRequestsPanel = memo(() => {
   }
 
   return (
-    <Card>
+    <Card className="hidden lg:block">
       <CardHeader className="p-3">
         <CardTitle className="text-sm sm:text-base font-semibold flex items-center">
           <UserPlus className="w-5 h-5 mr-2" />

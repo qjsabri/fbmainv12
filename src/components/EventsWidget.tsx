@@ -112,7 +112,7 @@ const EventsWidget = () => {
   };
 
   return (
-    <Card>
+    <Card className="hidden lg:block">
       <CardHeader className="p-3">
         <CardTitle className="text-base font-semibold flex items-center justify-between">
           <div className="flex items-center">
